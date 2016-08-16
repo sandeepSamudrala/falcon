@@ -15,40 +15,41 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.falcon.persistence;
 
 import org.apache.falcon.FalconException;
 import org.apache.falcon.entity.v0.EntityType;
 
+import java.util.Date;
+
+import javax.persistence.Basic;
+import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
-import javax.persistence.GenerationType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.Basic;
-import javax.persistence.Column;
 import javax.validation.constraints.NotNull;
-import java.util.Date;
 
 //SUSPEND CHECKSTYLE CHECK LineLengthCheck
 /**
-* The instances of feed to be monitored will be stored in db.
-* */
+ * Feed SLA monitoring.
+ * */
 @Entity
 @NamedQueries({
-    @NamedQuery(name = PersistenceConstants.GET_LATEST_INSTANCE_TIME, query = "select max(a.nominalTime) from PendingInstanceBean a where a.entityName = :entityName and a.entityType = :entityType"),
-    @NamedQuery(name = PersistenceConstants.GET_PENDING_INSTANCES, query = "select OBJECT(a) from PendingInstanceBean a where a.entityName = :entityName and a.entityType = :entityType"),
-    @NamedQuery(name = PersistenceConstants.DELETE_PENDING_NOMINAL_INSTANCES , query = "delete from PendingInstanceBean a where a.entityName = :entityName and a.clusterName = :clusterName and a.nominalTime = :nominalTime and a.entityType = :entityType"),
-    @NamedQuery(name = PersistenceConstants.DELETE_ALL_INSTANCES_FOR_ENTITY, query = "delete from PendingInstanceBean a where a.entityName = :entityName and a.clusterName = :clusterName and a.entityType = :entityType"),
-    @NamedQuery(name = PersistenceConstants.GET_DATE_FOR_PENDING_INSTANCES , query = "select a.nominalTime from PendingInstanceBean a where a.entityName = :entityName and a.clusterName = :clusterName and a.entityType = :entityType"),
-    @NamedQuery(name= PersistenceConstants.GET_ALL_PENDING_INSTANCES , query = "select  OBJECT(a) from PendingInstanceBean a "),
-    @NamedQuery(name= PersistenceConstants.GET_PENDING_INSTANCE , query = "select  OBJECT(a) from PendingInstanceBean a  where a.entityName = :entityName and a.clusterName = :clusterName and a.nominalTime = :nominalTime and a.entityType = :entityType")
+@NamedQuery(name = PersistenceConstants.GET_ENTITY_ALERTS, query = "select OBJECT(a) from EntitySLAAlertBean a where a.entityName = :entityName and a.entityType = :entityType"),
+@NamedQuery(name = PersistenceConstants.GET_ALL_ENTITY_ALERTS, query = "OBJECT(a) from PendingInstanceBean a "),
+@NamedQuery(name = PersistenceConstants.GET_SLA_HIGH_CANDIDATES, query = "select OBJECT(a) from EntitySLAAlertBean a where a.isSLALowMissed = true and a.isSLAHighMissed = false "),
+    @NamedQuery(name = PersistenceConstants.UPDATE_SLA_HIGH, query = "update EntitySLAAlertBean a set a.isSLAHighMissed = true where a.entityName = :entityName and a.clusterName = :clusterName and a.nominalTime = :nominalTime and a.entityType = :entityType"),
+@NamedQuery(name = PersistenceConstants.GET_ENTITY_ALERT_INSTANCE, query = "select OBJECT(a) from EntitySLAAlertBean a where a.entityName = :entityName and a.clusterName = :clusterName and a.nominalTime = :nominalTime and a.entityType = :entityType"),
+ @NamedQuery(name = PersistenceConstants.DELETE_ENTITY_ALERT_INSTANCE, query = "delete from EntitySLAAlertBean a where a.entityName = :entityName and a.clusterName = :clusterName and a.nominalTime = :nominalTime and a.entityType = :entityType")
 })
-@Table(name = "PENDING_INSTANCES")
+@Table(name = "ENTITY_SLA_ALERTS")
 //RESUME CHECKSTYLE CHECK  LineLengthCheck
-public class PendingInstanceBean {
+public class EntitySLAAlertBean {
     @NotNull
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Id
@@ -64,11 +65,6 @@ public class PendingInstanceBean {
     @Column(name = "cluster_name")
     private String clusterName;
 
-    @Basic
-    @NotNull
-    @Column(name = "nominal_time")
-    private Date nominalTime;
-
     public String getEntityType() {
         return entityType;
     }
@@ -83,12 +79,34 @@ public class PendingInstanceBean {
     @Column(name = "entity_type")
     private String entityType;
 
+    @Basic
+    @NotNull
+    @Column(name = "nominal_time")
+    private Date nominalTime;
+
+    @Basic
+    @Column(name = "sla_low_missed")
+    private Boolean isSLALowMissed = false;
+
+    @Basic
+    @Column(name = "sla_high_missed")
+    private Boolean isSLAHighMissed = false;
+
+    @Basic
+    @Column(name = "sla_low_alert_sent")
+    private Boolean slaLowAlertSent;
+
+
+    @Basic
+    @Column(name = "sla_high_alert_sent")
+    private Boolean slaHighAlertSent;
+
     public Date getNominalTime() {
-        return nominalTime;
+        return new Date(nominalTime.getTime());
     }
 
     public void setNominalTime(Date nominalTime) {
-        this.nominalTime = nominalTime;
+        this.nominalTime = new Date(nominalTime.getTime());
     }
 
     public String getId() {
@@ -115,15 +133,31 @@ public class PendingInstanceBean {
         this.entityName = entityName;
     }
 
+    public Boolean getIsSLALowMissed() {
+        return isSLALowMissed;
+    }
+
+    public void setIsSLALowMissed(Boolean isSLALowMissed) {
+        this.isSLALowMissed = isSLALowMissed;
+    }
+
+    public Boolean getIsSLAHighMissed() {
+        return isSLAHighMissed;
+    }
+
+    public void setIsSLAHighMissed(Boolean isSLAHighMissed) {
+        this.isSLAHighMissed = isSLAHighMissed;
+    }
+
     public static final String ENTITYNAME = "entityName";
 
     public static final String CLUSTERNAME = "clusterName";
 
-    public static final String NOMINALTIME = "nominalTime";
-
     public static final String ENTITYTYPE = "entityType";
 
-    void checkEntityType(String entityType)throws FalconException {
+    public static final String NOMINALTIME = "nominalTime";
+
+    void checkEntityType(String entityType)throws FalconException{
         if (entityType.equals(EntityType.PROCESS.toString()) || entityType.equals(EntityType.FEED.toString())){
             return;
         } else {
