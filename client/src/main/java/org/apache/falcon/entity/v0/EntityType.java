@@ -22,8 +22,6 @@ import org.apache.falcon.entity.v0.cluster.Cluster;
 import org.apache.falcon.entity.v0.feed.Feed;
 import org.apache.falcon.entity.v0.process.Process;
 import org.apache.falcon.entity.v0.datasource.Datasource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -43,8 +41,6 @@ public enum EntityType {
     PROCESS(Process.class, "/process-0.1.xsd", "name"),
     CLUSTER(Cluster.class, "/cluster-0.1.xsd", "name"),
     DATASOURCE(Datasource.class, "/datasource-0.1.xsd", "name");
-
-    private static final Logger LOG = LoggerFactory.getLogger(EntityType.class);
 
     //Fail unmarshalling of whole xml if unmarshalling of any element fails
     private static class EventHandler implements ValidationEventHandler {
@@ -128,27 +124,4 @@ public enum EntityType {
                     + Arrays.toString(values()).toLowerCase() + ".");
         }
     }
-
-    /**
-     * Finds the value of the given enumeration by name, case-insensitive.
-     * Throws an IllegalArgumentException if no match is found.
-     *
-     * @param entityType : string to compare against the value of EntityType
-     * @return EntityType : Object of type EntityType
-     * @throws IllegalArgumentException incase the argument is not present in the EntityType enum
-     **/
-
-    public static EntityType fromString(String entityType) {
-        if (entityType != null) {
-            for (EntityType enumType : EntityType.values()) {
-                if (entityType.equalsIgnoreCase(enumType.toString())) {
-                    return enumType;
-                }
-            }
-        }
-        LOG.error("There is no value with name '%s' in Enum EntityType", entityType);
-        throw new IllegalArgumentException(String.format(
-                "There is no value with name '%s' in Enum EntityType", entityType));
-    }
-
 }
