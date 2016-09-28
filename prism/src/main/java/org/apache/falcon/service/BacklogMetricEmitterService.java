@@ -24,7 +24,6 @@ import org.apache.falcon.entity.v0.Entity;
 import org.apache.falcon.entity.v0.EntityType;
 import org.apache.falcon.entity.v0.SchemaHelper;
 import org.apache.falcon.entity.v0.process.Cluster;
-import org.apache.falcon.entity.v0.process.Clusters;
 import org.apache.falcon.entity.v0.process.Process;
 import org.apache.falcon.jdbc.BacklogMetricStore;
 import org.apache.falcon.metrics.MetricNotificationService;
@@ -117,11 +116,11 @@ public final class BacklogMetricEmitterService implements FalconService,
         }
         Process process = EntityUtil.getEntity(entity.getEntityType(), entity.getName());
         for(Cluster cluster : process.getClusters().getClusters()){
-            dropGauge(cluster.getName(), process);
+            dropMetric(cluster.getName(), process);
         }
     }
 
-    public void dropGauge(String clusterName, Process process){
+    public void dropMetric(String clusterName, Process process){
         String pipelinesStr = process.getPipelines();
         String metricName;
 
@@ -129,11 +128,11 @@ public final class BacklogMetricEmitterService implements FalconService,
             String[] pipelines = pipelinesStr.split(",");
             for (String pipeline : pipelines) {
                 metricName = getMetricName(clusterName, process.getName(), pipeline);
-                metricNotificationService.deleteGauge(metricName);
+                metricNotificationService.deleteMetric(metricName);
             }
         } else {
             metricName = getMetricName(clusterName, process.getName(), DEFAULT_PIPELINE);
-            metricNotificationService.deleteGauge(metricName);
+            metricNotificationService.deleteMetric(metricName);
         }
     }
 
@@ -150,7 +149,7 @@ public final class BacklogMetricEmitterService implements FalconService,
             }
             Process process = EntityUtil.getEntity(oldEntity.getEntityType(), oldEntity.getName());
             for(Cluster cluster : process.getClusters().getClusters()){
-                dropGauge(cluster.getName(), process);
+                dropMetric(cluster.getName(), process);
             }
         }
     }
