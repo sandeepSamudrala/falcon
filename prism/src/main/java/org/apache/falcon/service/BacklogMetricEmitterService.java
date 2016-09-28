@@ -23,6 +23,7 @@ import org.apache.falcon.entity.EntityUtil;
 import org.apache.falcon.entity.v0.Entity;
 import org.apache.falcon.entity.v0.EntityType;
 import org.apache.falcon.entity.v0.SchemaHelper;
+import org.apache.falcon.entity.v0.process.Cluster;
 import org.apache.falcon.entity.v0.process.Process;
 import org.apache.falcon.jdbc.BacklogMetricStore;
 import org.apache.falcon.metrics.MetricNotificationService;
@@ -113,6 +114,26 @@ public final class BacklogMetricEmitterService implements FalconService,
             backlogMetricStore.deleteEntityInstance(entity.getName());
             entityBacklogs.remove(entity);
         }
+        Process process = EntityUtil.getEntity(entity.getEntityType(), entity.getName());
+        for(Cluster cluster : process.getClusters().getClusters()){
+            dropMetric(cluster.getName(), process);
+        }
+    }
+
+    public void dropMetric(String clusterName, Process process){
+        String pipelinesStr = process.getPipelines();
+        String metricName;
+
+        if (pipelinesStr != null && !pipelinesStr.isEmpty()) {
+            String[] pipelines = pipelinesStr.split(",");
+            for (String pipeline : pipelines) {
+                metricName = getMetricName(clusterName, process.getName(), pipeline);
+                metricNotificationService.deleteMetric(metricName);
+            }
+        } else {
+            metricName = getMetricName(clusterName, process.getName(), DEFAULT_PIPELINE);
+            metricNotificationService.deleteMetric(metricName);
+        }
     }
 
     @Override
@@ -126,6 +147,10 @@ public final class BacklogMetricEmitterService implements FalconService,
                 backlogMetricStore.deleteEntityInstance(newProcess.getName());
                 entityBacklogs.remove(newProcess);
             }
+            Process process = EntityUtil.getEntity(oldEntity.getEntityType(), oldEntity.getName());
+            for(Cluster cluster : process.getClusters().getClusters()){
+                dropMetric(cluster.getName(), process);
+            }
         }
     }
 
@@ -133,10 +158,10 @@ public final class BacklogMetricEmitterService implements FalconService,
     public void onReload(Entity entity) throws FalconException{
         // Do Nothing
     }
-    
+
     @Override
     public void highSLAMissed(String entityName, String clusterName, EntityType entityType, Date nominalTime)
-        throws FalconException {
+            throws FalconException {
 
         if (entityType != EntityType.PROCESS) {
             return;
@@ -206,6 +231,7 @@ public final class BacklogMetricEmitterService implements FalconService,
                 metrics.remove(new MetricInfo(DATE_FORMAT.get().format(date), context.getClusterName()));
                 if (metrics.isEmpty()) {
                     entityBacklogs.remove(entity);
+                    publishBacklog((Process) entity, context.getClusterName(), 0L);
                 }
             }
         }
@@ -305,30 +331,37 @@ public final class BacklogMetricEmitterService implements FalconService,
             if (backLogsCluster != null && !backLogsCluster.isEmpty()) {
                 for (Map.Entry<String, Long> entry : backLogsCluster.entrySet()) {
                     String clusterName = entry.getKey();
-                    String pipelinesStr = process.getPipelines();
-                    String metricName;
                     Long backlog = entry.getValue() / (60 * 1000L); // Converting to minutes
-                    if (pipelinesStr != null && !pipelinesStr.isEmpty()) {
-                        String[] pipelines = pipelinesStr.split(",");
-                        for (String pipeline : pipelines) {
-                            metricName = METRIC_PREFIX + METRIC_SEPARATOR + clusterName + METRIC_SEPARATOR
-                                    + pipeline + METRIC_SEPARATOR + LifeCycle.EXECUTION.name()
-                                    + METRIC_SEPARATOR + entityObj.getName() + METRIC_SEPARATOR
-                                    + "backlogInMins";
-                            metricNotificationService.publish(metricName, backlog);
-                        }
-                    } else {
-                        metricName = METRIC_PREFIX + METRIC_SEPARATOR + clusterName + METRIC_SEPARATOR
-                                + DEFAULT_PIPELINE + METRIC_SEPARATOR + LifeCycle.EXECUTION.name()
-                                + METRIC_SEPARATOR + entityObj.getName() + METRIC_SEPARATOR
-                                + "backlogInMins";
-                        metricNotificationService.publish(metricName, backlog);
-                    }
+                    publishBacklog(process, clusterName,backlog);
                 }
             }
         }
     }
 
+
+    public static void publishBacklog(Process process, String clusterName, Long backlog){
+        String pipelinesStr = process.getPipelines();
+        String metricName;
+
+        if (pipelinesStr != null && !pipelinesStr.isEmpty()) {
+            String[] pipelines = pipelinesStr.split(",");
+            for (String pipeline : pipelines) {
+                metricName = getMetricName(clusterName, process.getName(), pipeline);
+                metricNotificationService.publish(metricName, backlog);
+            }
+        } else {
+            metricName = getMetricName(clusterName, process.getName(), DEFAULT_PIPELINE);
+            metricNotificationService.publish(metricName, backlog);
+        }
+    }
+
+    public static String getMetricName(String clusterName, String processName, String pipeline){
+        String metricName = METRIC_PREFIX + METRIC_SEPARATOR + clusterName + METRIC_SEPARATOR
+                + pipeline + METRIC_SEPARATOR + LifeCycle.EXECUTION.name()
+                + METRIC_SEPARATOR + processName + METRIC_SEPARATOR
+                + "backlogInMins";
+        return metricName;
+    }
 
     /**
      * Service runs periodically and removes succeeded instances from backlog list.
