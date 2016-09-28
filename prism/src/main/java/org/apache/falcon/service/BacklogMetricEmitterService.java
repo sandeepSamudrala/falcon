@@ -194,12 +194,14 @@ public final class BacklogMetricEmitterService implements FalconService,
     @Override
     public synchronized void onSuccess(WorkflowExecutionContext context) throws FalconException {
         Entity entity = EntityUtil.getEntity(context.getEntityType(), context.getEntityName());
+        LOG.info("OnSuccess Called");
         if (entity.getEntityType() != EntityType.PROCESS) {
             return;
         }
         if (entityBacklogs.containsKey(entity)) {
             List<MetricInfo> metrics = entityBacklogs.get(entity);
             synchronized (metrics) {
+                LOG.info("Entity found for deleting metric");
                 Date date = SchemaHelper.parseDateUTC(context.getNominalTimeAsISO8601());
                 backlogMetricStore.deleteMetricInstance(entity.getName(), context.getClusterName(),
                         date, entity.getEntityType());
