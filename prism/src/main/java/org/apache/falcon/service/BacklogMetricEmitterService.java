@@ -110,14 +110,8 @@ public final class BacklogMetricEmitterService implements FalconService,
         if (entity.getEntityType() != EntityType.PROCESS){
             return;
         }
-<<<<<<< HEAD
         backlogMetricStore.deleteEntityInstance(entity.getName());
         entityBacklogs.remove(entity);
-=======
-        synchronized (entityBacklogs){
-            backlogMetricStore.deleteEntityInstance(entity.getName());
-            entityBacklogs.remove(entity);
-        }
         Process process = EntityUtil.getEntity(entity.getEntityType(), entity.getName());
         for(Cluster cluster : process.getClusters().getClusters()){
             dropMetric(cluster.getName(), process);
