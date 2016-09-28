@@ -29,7 +29,6 @@ public final class PersistenceConstants {
     public static final String GET_ALL_MONITORING_ENTITIES_FOR_TYPE = "GET_ALL_MONITORING_ENTITIES_FOR_TYPE";
     public static final String GET_ALL_MONITORING_ENTITY = "GET_ALL_MONITORING_ENTITY";
     public static final String UPDATE_LAST_MONITORED_TIME = "UPDATE_LAST_MONITORED_TIME";
-    public static final String GET_LAST_MONITORED_TIME = "GET_LAST_MONITORED_TIME";
 
     public static final String GET_PENDING_INSTANCES = "GET_PENDING_INSTANCES";
     public static final String GET_PENDING_INSTANCE = "GET_PENDING_INSTANCE";

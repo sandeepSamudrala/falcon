@@ -115,15 +115,15 @@ public class MonitoringJdbcStateStoreTest extends AbstractTestBase {
         Date expectedLastMonitoredTime = now();
         monitoringJdbcStateStore.putMonitoredEntity("test-process", EntityType.PROCESS.toString(),
                 expectedLastMonitoredTime);
-        Date actualLastMonitoredTime = monitoringJdbcStateStore.getLastMonitoredTime("test-process",
-                EntityType.PROCESS.toString());
+        Date actualLastMonitoredTime = monitoringJdbcStateStore.getMonitoredEntity("test-process",
+                EntityType.PROCESS.toString()).getLastMonitoredTime();
         Assert.assertEquals(actualLastMonitoredTime, expectedLastMonitoredTime);
 
         Date updatedLastMonitoredTime = new Date(now().getTime() + 600000L);
         monitoringJdbcStateStore.updateLastMonitoredTime("test-process", EntityType.PROCESS.toString(),
                 updatedLastMonitoredTime);
-        actualLastMonitoredTime = monitoringJdbcStateStore.getLastMonitoredTime("test-process",
-                EntityType.PROCESS.toString());
+        actualLastMonitoredTime = monitoringJdbcStateStore.getMonitoredEntity("test-process",
+                EntityType.PROCESS.toString()).getLastMonitoredTime();
         Assert.assertEquals(actualLastMonitoredTime, updatedLastMonitoredTime);
     }
 

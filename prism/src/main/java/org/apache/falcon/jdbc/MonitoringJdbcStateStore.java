@@ -119,16 +119,6 @@ public class MonitoringJdbcStateStore {
         return result;
     }
 
-    public Date getLastMonitoredTime(String entityName, String entityType) throws ResultNotFoundException {
-        EntityManager entityManager = getEntityManager();
-        Query query = entityManager.createNamedQuery(PersistenceConstants.GET_LAST_MONITORED_TIME, Date.class);
-        query.setParameter(MonitoredEntityBean.ENTITY_NAME, entityName);
-        query.setParameter(MonitoredEntityBean.ENTITY_TYPE, entityType.toLowerCase());
-        Date result = (Date)query.getSingleResult();
-        entityManager.close();
-        return result;
-    }
-
     public Date getLastInstanceTime(String entityName , String entityType) throws ResultNotFoundException {
         EntityManager entityManager = getEntityManager();
         Query q = entityManager.createNamedQuery(PersistenceConstants.GET_LATEST_INSTANCE_TIME, Date.class);

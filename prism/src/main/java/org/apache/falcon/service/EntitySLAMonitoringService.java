@@ -399,7 +399,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                                      org.apache.falcon.entity.v0.cluster.Cluster entityCluster,
                                      List<Date> instances) throws FalconException {
         for(Date date:instances){
-            LOG.info("Adding pending instance={} for entity= {} in cluster>={} and entityType={}", date, entity,
+            LOG.debug("Adding pending instance={} for entity= {} in cluster>={} and entityType={}", date, entity,
                     entityType);
             MONITORING_JDBC_STATE_STORE.putPendingInstances(entity.getName(), entityCluster.getName(), date,
                     entityType);
@@ -412,6 +412,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                 getAllMonitoredEntities(entityType);
         for(MonitoredEntityBean monitoredEntityBean : entityBeanList) {
             String entityName = monitoredEntityBean.getEntityName();
+            Date lastMonitoredInstanceTime = monitoredEntityBean.getLastMonitoredTime();
             Entity entity = EntityUtil.getEntity(entityType, entityName);
             Set<String> clustersDefined =  EntityUtil.getClustersDefined(entity);
             List<org.apache.falcon.entity.v0.cluster.Cluster> clusters = new ArrayList();
@@ -421,8 +422,6 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
             for (org.apache.falcon.entity.v0.cluster.Cluster entityCluster : clusters) {
                 if (currentClusters.contains(entityCluster.getName())) {
                     // get last monitored time from the monitored entity table
-                    Date lastMonitoredInstanceTime = MONITORING_JDBC_STATE_STORE.getLastMonitoredTime(
-                            entityName, entityType);
                     List<Date> instances = EntityUtil.getEntityInstanceTimes(entity, entityCluster.getName(),
                             lastMonitoredInstanceTime, newCheckPointTime);
                     if (instances != null && !instances.isEmpty()) {

@@ -33,7 +33,7 @@ import java.util.Date;
 
 //SUSPEND CHECKSTYLE CHECK LineLengthCheck
 /**
-* The Feeds that are to be monitered will be stored in the db.
+* The Entities that are to be monitored will be stored in MONITORED_ENTITY table.
 * */
 
 @Entity
@@ -47,9 +47,7 @@ import java.util.Date;
         @NamedQuery(name = PersistenceConstants.GET_ALL_MONITORING_ENTITY, query = "select OBJECT(a) "
                 + "from MonitoredEntityBean a"),
         @NamedQuery(name = PersistenceConstants.UPDATE_LAST_MONITORED_TIME, query = "update MonitoredEntityBean a set " +
-                "a.lastMonitoredTime = :lastMonitoredTime where a.entityName = :entityName and a.entityType = :entityType"),
-        @NamedQuery(name = PersistenceConstants.GET_LAST_MONITORED_TIME, query = "select a.lastMonitoredTime from " +
-                "MonitoredEntityBean a where a.entityName = :entityName and a.entityType = :entityType")
+                "a.lastMonitoredTime = :lastMonitoredTime where a.entityName = :entityName and a.entityType = :entityType")
 })
 @Table(name="MONITORED_ENTITY")
 //RESUME CHECKSTYLE CHECK  LineLengthCheck
@@ -82,8 +80,8 @@ public class MonitoredEntityBean {
         return entityName;
     }
 
-    public void setEntityName(String feedName) {
-        this.entityName = feedName;
+    public void setEntityName(String entityName) {
+        this.entityName = entityName;
     }
 
     @Basic
