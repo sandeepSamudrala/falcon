@@ -391,7 +391,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
             String entityName = monitoredEntityBean.getEntityName();
             Date lastMonitoredInstanceTime = (startTime != null) ? startTime :
                     monitoredEntityBean.getLastMonitoredTime();
-            endTime = endTime != null ? endTime : now();
+            Date newCheckPointTime = endTime != null ? endTime : now();
             Entity entity = EntityUtil.getEntity(entityType, entityName);
             Set<String> clustersDefined =  EntityUtil.getClustersDefined(entity);
             List<org.apache.falcon.entity.v0.cluster.Cluster> clusters = new ArrayList();
@@ -401,10 +401,10 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
             for (org.apache.falcon.entity.v0.cluster.Cluster entityCluster : clusters) {
                 if (currentClusters.contains(entityCluster.getName())) {
                     List<Date> instances = EntityUtil.getEntityInstanceTimes(entity, entityCluster.getName(),
-                            lastMonitoredInstanceTime, endTime);
+                            lastMonitoredInstanceTime, newCheckPointTime);
                     addPendingInstances(entityType, entity, entityCluster, instances);
                     // update last monitored time with the new checkpoint time
-                    MONITORING_JDBC_STATE_STORE.updateLastMonitoredTime(entityName, entityType, endTime);
+                    MONITORING_JDBC_STATE_STORE.updateLastMonitoredTime(entityName, entityType, newCheckPointTime);
                 }
             }
         }

@@ -46,8 +46,9 @@ import java.util.Date;
                 + "from MonitoredEntityBean a where a.entityType = :entityType"),
         @NamedQuery(name = PersistenceConstants.GET_ALL_MONITORING_ENTITY, query = "select OBJECT(a) "
                 + "from MonitoredEntityBean a"),
-        @NamedQuery(name = PersistenceConstants.UPDATE_LAST_MONITORED_TIME, query = "update MonitoredEntityBean a set " +
-                "a.lastMonitoredTime = :lastMonitoredTime where a.entityName = :entityName and a.entityType = :entityType")
+        @NamedQuery(name = PersistenceConstants.UPDATE_LAST_MONITORED_TIME, query = "update MonitoredEntityBean a " +
+                "set a.lastMonitoredTime = :lastMonitoredTime where a.entityName = :entityName and a.entityType = " +
+                ":entityType")
 })
 @Table(name="MONITORED_ENTITY")
 //RESUME CHECKSTYLE CHECK  LineLengthCheck
