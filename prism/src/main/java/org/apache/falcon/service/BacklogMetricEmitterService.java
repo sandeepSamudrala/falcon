@@ -117,7 +117,23 @@ public final class BacklogMetricEmitterService implements FalconService,
         }
         Process process = EntityUtil.getEntity(entity.getEntityType(), entity.getName());
         for(Cluster cluster : process.getClusters().getClusters()){
-            publishBacklog(process, cluster.getName(), 0L);
+            dropGauge(cluster.getName(), process);
+        }
+    }
+
+    public void dropGauge(String clusterName, Process process){
+        String pipelinesStr = process.getPipelines();
+        String metricName;
+
+        if (pipelinesStr != null && !pipelinesStr.isEmpty()) {
+            String[] pipelines = pipelinesStr.split(",");
+            for (String pipeline : pipelines) {
+                metricName = getMetricName(clusterName, process.getName(), pipeline);
+                metricNotificationService.deleteGauge(metricName);
+            }
+        } else {
+            metricName = getMetricName(clusterName, process.getName(), DEFAULT_PIPELINE);
+            metricNotificationService.deleteGauge(metricName);
         }
     }
 
@@ -134,7 +150,7 @@ public final class BacklogMetricEmitterService implements FalconService,
             }
             Process process = EntityUtil.getEntity(oldEntity.getEntityType(), oldEntity.getName());
             for(Cluster cluster : process.getClusters().getClusters()){
-                publishBacklog(process, cluster.getName(), 0L);
+                dropGauge(cluster.getName(), process);
             }
         }
     }
@@ -331,19 +347,21 @@ public final class BacklogMetricEmitterService implements FalconService,
         if (pipelinesStr != null && !pipelinesStr.isEmpty()) {
             String[] pipelines = pipelinesStr.split(",");
             for (String pipeline : pipelines) {
-                metricName = METRIC_PREFIX + METRIC_SEPARATOR + clusterName + METRIC_SEPARATOR
-                        + pipeline + METRIC_SEPARATOR + LifeCycle.EXECUTION.name()
-                        + METRIC_SEPARATOR + process.getName() + METRIC_SEPARATOR
-                        + "backlogInMins";
+                metricName = getMetricName(clusterName, process.getName(), pipeline);
                 metricNotificationService.publish(metricName, backlog);
             }
         } else {
-            metricName = METRIC_PREFIX + METRIC_SEPARATOR + clusterName + METRIC_SEPARATOR
-                    + DEFAULT_PIPELINE + METRIC_SEPARATOR + LifeCycle.EXECUTION.name()
-                    + METRIC_SEPARATOR + process.getName() + METRIC_SEPARATOR
-                    + "backlogInMins";
+            metricName = getMetricName(clusterName, process.getName(), DEFAULT_PIPELINE);
             metricNotificationService.publish(metricName, backlog);
         }
+    }
+
+    public static String getMetricName(String clusterName, String processName, String pipeline){
+        String metricName = METRIC_PREFIX + METRIC_SEPARATOR + clusterName + METRIC_SEPARATOR
+                + pipeline + METRIC_SEPARATOR + LifeCycle.EXECUTION.name()
+                + METRIC_SEPARATOR + processName + METRIC_SEPARATOR
+                + "backlogInMins";
+        return metricName;
     }
 
     /**
