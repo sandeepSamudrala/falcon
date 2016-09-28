@@ -386,9 +386,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                 if (currentClusters.contains(entityCluster.getName())) {
                     List<Date> instances = EntityUtil.getEntityInstanceTimes(entity, entityCluster.getName(),
                             lastMonitoredTime, now());
-                    if (instances != null && !instances.isEmpty()) {
-                        addPendingInstances(entityType, entity, entityCluster, instances);
-                    }
+                    addPendingInstances(entityType, entity, entityCluster, instances);
                     MONITORING_JDBC_STATE_STORE.updateLastMonitoredTime(entityName, entityType, now());
                 }
             }
@@ -398,11 +396,13 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
     private void addPendingInstances(String entityType, Entity entity,
                                      org.apache.falcon.entity.v0.cluster.Cluster entityCluster,
                                      List<Date> instances) throws FalconException {
-        for(Date date:instances){
-            LOG.debug("Adding pending instance={} for entity= {} in cluster>={} and entityType={}", date, entity,
-                    entityType);
-            MONITORING_JDBC_STATE_STORE.putPendingInstances(entity.getName(), entityCluster.getName(), date,
-                    entityType);
+        if (instances != null && !instances.isEmpty()) {
+            for (Date date : instances) {
+                LOG.debug("Adding pending instance={} for entity= {} in cluster>={} and entityType={}", date, entity,
+                        entityType);
+                MONITORING_JDBC_STATE_STORE.putPendingInstances(entity.getName(), entityCluster.getName(), date,
+                        entityType);
+            }
         }
     }
 
@@ -424,9 +424,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                     // get last monitored time from the monitored entity table
                     List<Date> instances = EntityUtil.getEntityInstanceTimes(entity, entityCluster.getName(),
                             lastMonitoredInstanceTime, newCheckPointTime);
-                    if (instances != null && !instances.isEmpty()) {
-                        addPendingInstances(entityType, entity, entityCluster, instances);
-                    }
+                    addPendingInstances(entityType, entity, entityCluster, instances);
                     // update last monitored time with the new checkpoint time
                     MONITORING_JDBC_STATE_STORE.updateLastMonitoredTime(entityName, entityType, newCheckPointTime);
                 }
