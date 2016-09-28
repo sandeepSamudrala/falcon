@@ -17,23 +17,22 @@
  */
 package org.apache.falcon.service;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.text.ParseException;
-import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.falcon.FalconException;
 import org.apache.falcon.Pair;
-import org.apache.falcon.entity.FeedInstanceStatus;
 import org.apache.falcon.entity.ClusterHelper;
 import org.apache.falcon.entity.EntityUtil;
 import org.apache.falcon.entity.FeedHelper;
+import org.apache.falcon.entity.FeedInstanceStatus;
 import org.apache.falcon.entity.ProcessHelper;
 import org.apache.falcon.entity.v0.Entity;
 import org.apache.falcon.entity.v0.EntityType;
@@ -42,6 +41,7 @@ import org.apache.falcon.entity.v0.feed.Cluster;
 import org.apache.falcon.entity.v0.feed.Feed;
 import org.apache.falcon.entity.v0.feed.Sla;
 import org.apache.falcon.entity.v0.process.Clusters;
+import org.apache.falcon.entity.v0.process.Process;
 import org.apache.falcon.expression.ExpressionHelper;
 import org.apache.falcon.hadoop.HadoopClientFactory;
 import org.apache.falcon.jdbc.MonitoringJdbcStateStore;
@@ -60,12 +60,8 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.falcon.entity.v0.process.Process;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Service to monitor Feed SLAs.
@@ -441,7 +437,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
     private boolean checkEntityInstanceAvailability(String entityName, String clusterName, Date nominalTime,
                                                     String entityType) throws FalconException {
         Entity entity = EntityUtil.getEntity(entityType, entityName);
-        authenticateUser(entity);
+        authenticateUser();
         try {
             if (entityType.equals(EntityType.PROCESS.toString())){
                 LOG.trace("Checking instance availability status for entity:{}, cluster:{}, "
@@ -666,10 +662,9 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         }
     }
 
-    private void authenticateUser(Entity entity){
-        if (StringUtils.isNotBlank(entity.getACL().getOwner())) {
-            CurrentUser.authenticate(entity.getACL().getOwner());
-        } else {
+    // Authenticate user only if not already authenticated.
+    private void authenticateUser(){
+        if (! CurrentUser.isAuthenticated()) {
             CurrentUser.authenticate(System.getProperty("user.name"));
         }
     }
