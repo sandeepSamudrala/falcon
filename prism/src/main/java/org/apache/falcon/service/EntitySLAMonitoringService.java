@@ -389,8 +389,8 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                 getAllMonitoredEntities(entityType);
         for(MonitoredEntityBean monitoredEntityBean : entityBeanList) {
             String entityName = monitoredEntityBean.getEntityName();
-            Date lastMonitoredInstanceTime = (startTime != null) ? startTime :
-                    monitoredEntityBean.getLastMonitoredTime();
+            Date lastMonitoredInstanceTime = (startTime != null) ? startTime
+                    : monitoredEntityBean.getLastMonitoredTime();
             Date newCheckPointTime = endTime != null ? endTime : now();
             Entity entity = EntityUtil.getEntity(entityType, entityName);
             Set<String> clustersDefined =  EntityUtil.getClustersDefined(entity);
