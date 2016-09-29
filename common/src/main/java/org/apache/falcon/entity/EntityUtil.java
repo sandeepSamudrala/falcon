@@ -40,7 +40,6 @@ import org.apache.falcon.entity.v0.datasource.DatasourceType;
 import org.apache.falcon.entity.v0.cluster.Property;
 import org.apache.falcon.entity.v0.feed.ClusterType;
 import org.apache.falcon.entity.v0.feed.Feed;
-import org.apache.falcon.entity.v0.feed.Validity;
 import org.apache.falcon.entity.v0.process.LateInput;
 import org.apache.falcon.entity.v0.process.LateProcess;
 import org.apache.falcon.entity.v0.process.PolicyType;
@@ -1026,11 +1025,12 @@ public final class EntityUtil {
     public static List<Date> getEntityInstanceTimes(Entity entity, String clusterName, Date startRange, Date endRange) {
         Date start = null;
         Date end = null;
-        org.apache.falcon.entity.v0.feed.Validity feedValidity = null;
-        org.apache.falcon.entity.v0.process.Validity processValidity = null;
+
+
         switch (entity.getEntityType()) {
 
         case FEED:
+            org.apache.falcon.entity.v0.feed.Validity feedValidity = null;
             Feed feed = (Feed) entity;
             feedValidity = FeedHelper.getCluster(feed, clusterName).getValidity();
             start = feedValidity.getStart();
@@ -1039,6 +1039,7 @@ public final class EntityUtil {
                     startRange, end);
 
         case PROCESS:
+            org.apache.falcon.entity.v0.process.Validity processValidity = null;
             Process process = (Process) entity;
             processValidity = ProcessHelper.getCluster(process, clusterName).getValidity();
             start = processValidity.getStart();
