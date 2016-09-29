@@ -40,6 +40,7 @@ import org.apache.falcon.entity.v0.datasource.DatasourceType;
 import org.apache.falcon.entity.v0.cluster.Property;
 import org.apache.falcon.entity.v0.feed.ClusterType;
 import org.apache.falcon.entity.v0.feed.Feed;
+import org.apache.falcon.entity.v0.feed.Validity;
 import org.apache.falcon.entity.v0.process.LateInput;
 import org.apache.falcon.entity.v0.process.LateProcess;
 import org.apache.falcon.entity.v0.process.PolicyType;
@@ -1024,19 +1025,26 @@ public final class EntityUtil {
      */
     public static List<Date> getEntityInstanceTimes(Entity entity, String clusterName, Date startRange, Date endRange) {
         Date start = null;
+        Date end = null;
+        org.apache.falcon.entity.v0.feed.Validity feedValidity = null;
+        org.apache.falcon.entity.v0.process.Validity processValidity = null;
         switch (entity.getEntityType()) {
 
         case FEED:
             Feed feed = (Feed) entity;
-            start = FeedHelper.getCluster(feed, clusterName).getValidity().getStart();
+            feedValidity = FeedHelper.getCluster(feed, clusterName).getValidity();
+            start = feedValidity.getStart();
+            end = feedValidity.getEnd().before(endRange) ? feedValidity.getEnd() : endRange;
             return getInstanceTimes(start, feed.getFrequency(), feed.getTimezone(),
-                    startRange, endRange);
+                    startRange, end);
 
         case PROCESS:
             Process process = (Process) entity;
-            start = ProcessHelper.getCluster(process, clusterName).getValidity().getStart();
+            processValidity = ProcessHelper.getCluster(process, clusterName).getValidity();
+            start = processValidity.getStart();
+            end = processValidity.getEnd().before(endRange) ? processValidity.getEnd() : endRange;
             return getInstanceTimes(start, process.getFrequency(),
-                    process.getTimezone(), startRange, endRange);
+                    process.getTimezone(), startRange, end);
 
         default:
             throw new IllegalArgumentException("Unhandled type: " + entity.getEntityType());
@@ -1066,13 +1074,13 @@ public final class EntityUtil {
 
         Date current = getPreviousInstanceTime(startTime, frequency, timeZone, startRange);
         while (true) {
-            Date nextStartTime = getNextStartTime(startTime, frequency, timeZone, current);
-            if (nextStartTime.after(endRange)){
+            Date nextInstanceTime = getNextInstanceTime(current, frequency, timeZone, 1);
+            if (nextInstanceTime.after(endRange)){
                 break;
             }
-            result.add(nextStartTime);
+            result.add(nextInstanceTime);
             // this is required because getNextStartTime returns greater than or equal to referenceTime
-            current = new Date(nextStartTime.getTime() + ONE_MS); // 1 milli seconds later
+            current = new Date(nextInstanceTime.getTime() + ONE_MS); // 1 milli seconds later
         }
         return result;
     }
