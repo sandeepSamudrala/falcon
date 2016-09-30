@@ -98,7 +98,7 @@ public class MetricNotificationService implements FalconService {
     public void deleteMetric(String metricName){
         synchronized (this){
             SortedMap<String, Gauge> gaugeMap = metricRegistry.getGauges();
-            if(gaugeMap.get(metricName) != null){
+            if (gaugeMap.get(metricName) != null){
                 metricRegistry.remove(metricName);
                 metricMap.remove(metricName);
             }

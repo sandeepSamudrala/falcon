@@ -44,6 +44,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -80,6 +81,15 @@ public class EntityUtilTest extends AbstractTestBase {
 
         view = EntityUtil.getClusterView(feed, "backupCluster");
         Assert.assertEquals(view.getClusters().getClusters().size(), 2);
+    }
+    @Test
+    public void  testGetInstancesInBetween(){
+        Date startTime = SchemaHelper.parseDateUTC("2016-09-30T00:00Z");
+        Frequency frequency = new Frequency("minutes(5)");
+        Date startRange = SchemaHelper.parseDateUTC("2016-09-30T00:06Z");
+        Date endRange = SchemaHelper.parseDateUTC("2016-09-30T00:11Z");
+        List<Date> instances = EntityUtil.getInstancesInBetween(startTime, frequency, tz, startRange, endRange);
+        Assert.assertEquals(instances.size(), 1);
     }
 
     @Test
