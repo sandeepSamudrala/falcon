@@ -156,9 +156,8 @@ public final class BacklogMetricEmitterService implements FalconService,
     }
 
     @Override
-    public void highSLAMissed(String entityName, String clusterName, EntityType entityType, Date nominalTime)
-            throws FalconException {
-
+    public void highSLAMissed(String entityName, String clusterName, EntityType entityType,
+                              Date nominalTime) throws FalconException {
         if (entityType != EntityType.PROCESS) {
             return;
         }
@@ -328,7 +327,7 @@ public final class BacklogMetricEmitterService implements FalconService,
                 for (Map.Entry<String, Long> entry : backLogsCluster.entrySet()) {
                     String clusterName = entry.getKey();
                     Long backlog = entry.getValue() / (60 * 1000L); // Converting to minutes
-                    publishBacklog(process, clusterName,backlog);
+                    publishBacklog(process, clusterName, backlog);
                 }
             }
         }
