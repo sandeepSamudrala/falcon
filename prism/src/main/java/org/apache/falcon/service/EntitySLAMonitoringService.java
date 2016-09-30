@@ -138,7 +138,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                             LOG.debug("Adding feed:{} for monitoring", feed.getName());
                             MONITORING_JDBC_STATE_STORE.putMonitoredEntity(feed.getName(), EntityType.FEED.toString(),
                                     new Date(now().getTime() + MINUTE_DELAY));
-                            List<Date> instances = EntityUtil.getEntityInstanceTimes(entity, cluster,
+                            List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, cluster,
                                     getInitialStartTime(entity, cluster, EntityType.FEED.toString()), now());
                             addPendingInstances(entity.getEntityType().name().toLowerCase(), entity, cluster, instances);
                         }
@@ -154,7 +154,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                         LOG.debug("Adding process:{} for monitoring", process.getName());
                         MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
                                 EntityType.PROCESS.toString(), new Date(now().getTime() + MINUTE_DELAY));
-                        List<Date> instances = EntityUtil.getEntityInstanceTimes(entity, cluster,
+                        List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, cluster,
                                 getInitialStartTime(entity, cluster, EntityType.PROCESS.toString()), now());
                         addPendingInstances(entity.getEntityType().name().toLowerCase(), entity, cluster, instances);
                     }
@@ -397,11 +397,8 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
             }
             for (org.apache.falcon.entity.v0.cluster.Cluster entityCluster : clusters) {
                 if (currentClusters.contains(entityCluster.getName())) {
-                    List<Date> instances = EntityUtil.getEntityInstanceTimes(entity, entityCluster.getName(),
+                    List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, entityCluster.getName(),
                             lastMonitoredInstanceTime, newCheckPointTime);
-                    LOG.debug("adding pending instances in range:{} for start {} and end {}",
-                            java.util.Arrays.toString(instances.toArray()), lastMonitoredInstanceTime,
-                            newCheckPointTime);
                     addPendingInstances(entityType, entity, entityCluster.getName(), instances);
                     // update last monitored time with the new checkpoint time
                     MONITORING_JDBC_STATE_STORE.updateLastMonitoredTime(entityName, entityType,
