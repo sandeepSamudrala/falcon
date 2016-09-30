@@ -63,6 +63,7 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.falcon.entity.EntityUtil.getStartTime;
 import static org.apache.falcon.util.DateUtil.now;
 
 /**
@@ -139,7 +140,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                             MONITORING_JDBC_STATE_STORE.putMonitoredEntity(feed.getName(), EntityType.FEED.toString(),
                                     new Date(now().getTime() + MINUTE_DELAY));
                             List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, cluster,
-                                    getInitialStartTime(entity, cluster, EntityType.FEED.toString()), now());
+                                    getStartTime(entity, cluster), now());
                             addPendingInstances(entity.getEntityType().name().toLowerCase(), entity, cluster,
                                     instances);
                         }
@@ -155,7 +156,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                         MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
                                 EntityType.PROCESS.toString(), new Date(now().getTime() + MINUTE_DELAY));
                         List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, cluster,
-                                getInitialStartTime(entity, cluster, EntityType.PROCESS.toString()), now());
+                                getStartTime(entity, cluster), now());
                         addPendingInstances(entity.getEntityType().name().toLowerCase(), entity, cluster, instances);
                     }
                 }
@@ -262,9 +263,9 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         if (newEntity.getEntityType() == EntityType.PROCESS) {
             Process oldProcess = (Process) oldEntity;
             Process newProcess = (Process) newEntity;
-            if (!isSLAMonitoringEnabledInCurrentColo(oldProcess)){
-                onRemove(newProcess);
-            } else if (!isSLAMonitoringEnabledInCurrentColo(newProcess)){
+            if (!isSLAMonitoringEnabledInCurrentColo(newProcess)){
+                onRemove(oldProcess);
+            } else if (!isSLAMonitoringEnabledInCurrentColo(oldProcess)){
                 onAdd(newProcess);
             } else {
                 List<String> slaRemovedClusters = new ArrayList<>();

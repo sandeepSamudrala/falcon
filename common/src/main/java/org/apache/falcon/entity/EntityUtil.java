@@ -1075,18 +1075,19 @@ public final class EntityUtil {
             org.apache.falcon.entity.v0.feed.Validity feedValidity =
                     FeedHelper.getCluster(feed, clusterName).getValidity();
             start = feedValidity.getStart();
-            end = feedValidity.getEnd().before(endRange) ? feedValidity.getEnd() : endRange;
-            return getInstancesInBetween(start, feed.getFrequency(), feed.getTimezone(),
-                    startRange, end);
+            end = feedValidity.getEnd();
+            return getInstancesInBetween(start, end, feed.getFrequency(), feed.getTimezone(),
+                    startRange, endRange);
 
         case PROCESS:
             Process process = (Process) entity;
             org.apache.falcon.entity.v0.process.Validity processValidity =
                     ProcessHelper.getCluster(process, clusterName).getValidity();
             start = processValidity.getStart();
-            end = processValidity.getEnd().before(endRange) ? processValidity.getEnd() : endRange;
-            return getInstancesInBetween(start, process.getFrequency(),
-                    process.getTimezone(), startRange, end);
+            end = processValidity.getEnd();
+
+            return getInstancesInBetween(start, end, process.getFrequency(),
+                    process.getTimezone(), startRange, endRange);
 
         default:
             throw new IllegalArgumentException("Unhandled type: " + entity.getEntityType());
@@ -1128,22 +1129,26 @@ public final class EntityUtil {
     }
 
 
-    public static List<Date> getInstancesInBetween(Date startTime, Frequency frequency, TimeZone timeZone,
+    public static List<Date> getInstancesInBetween(Date startTime, Date endTime, Frequency frequency, TimeZone timeZone,
                                                   Date startRange, Date endRange) {
         List<Date> result = new LinkedList<>();
+        if (endRange.before(startRange)) {
+            return result;
+        }
         if (timeZone == null) {
             timeZone = TimeZone.getTimeZone("UTC");
         }
-
         Date current = getPreviousInstanceTime(startTime, frequency, timeZone, startRange);
         while (true) {
+            if (!current.before(startRange) && !current.after(endRange)
+                    && current.before(endTime) && !current.before(startTime)) {
+                result.add(current);
+            }
             Date nextInstanceTime = getNextInstanceTime(current, frequency, timeZone, 1);
-            if (nextInstanceTime.after(endRange)){
+            if (nextInstanceTime.after(endRange) ){
                 break;
             }
-            result.add(nextInstanceTime);
-            // this is required because getNextStartTime returns greater than or equal to referenceTime
-            current = new Date(nextInstanceTime.getTime() + ONE_MS); // 1 milli seconds later
+            current = nextInstanceTime;
         }
         return result;
     }
