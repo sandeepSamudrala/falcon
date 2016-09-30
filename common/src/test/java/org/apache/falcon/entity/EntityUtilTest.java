@@ -84,12 +84,32 @@ public class EntityUtilTest extends AbstractTestBase {
     }
     @Test
     public void  testGetInstancesInBetween(){
-        Date startTime = SchemaHelper.parseDateUTC("2016-09-30T00:00Z");
+        Date startTime = SchemaHelper.parseDateUTC("2016-09-30T15:24Z");
+        Date endTime = SchemaHelper.parseDateUTC("2016-09-30T17:04Z");
         Frequency frequency = new Frequency("minutes(5)");
-        Date startRange = SchemaHelper.parseDateUTC("2016-09-30T00:06Z");
-        Date endRange = SchemaHelper.parseDateUTC("2016-09-30T00:11Z");
-        List<Date> instances = EntityUtil.getInstancesInBetween(startTime, frequency, tz, startRange, endRange);
+        Date startRange = SchemaHelper.parseDateUTC("2016-09-30T15:25Z");
+        Date endRange = SchemaHelper.parseDateUTC("2016-09-30T15:30Z");
+        List<Date> instances = EntityUtil.getInstancesInBetween(startTime, endTime, frequency, tz, startRange,
+                endRange);
+        startRange = SchemaHelper.parseDateUTC("2016-09-30T15:18Z");
+        endRange = SchemaHelper.parseDateUTC("2016-09-30T15:24Z");
+        instances.addAll(EntityUtil.getInstancesInBetween(startTime, endTime, frequency, tz, startRange, endRange));
+        Assert.assertEquals(instances.size(), 2);
+        startRange = SchemaHelper.parseDateUTC("2016-09-30T15:24Z");
+        endRange = SchemaHelper.parseDateUTC("2016-09-30T15:25Z");
+        instances = EntityUtil.getInstancesInBetween(startTime, endTime, frequency, tz, startRange, endRange);
         Assert.assertEquals(instances.size(), 1);
+
+        frequency = new Frequency("minutes(2)");
+        startRange = SchemaHelper.parseDateUTC("2016-09-30T16:32Z");
+        endRange = SchemaHelper.parseDateUTC("2016-09-30T17:02Z");
+        instances = EntityUtil.getInstancesInBetween(startTime, endTime, frequency, tz, startRange, endRange);
+        Assert.assertEquals(instances.size(), 16);
+        startRange = SchemaHelper.parseDateUTC("2016-09-30T15:24Z");
+        endRange = SchemaHelper.parseDateUTC("2016-09-30T17:05Z");
+        instances = EntityUtil.getInstancesInBetween(startTime, endTime, frequency, tz, startRange, endRange);
+        Assert.assertEquals(instances.size(), 50);
+
     }
 
     @Test
