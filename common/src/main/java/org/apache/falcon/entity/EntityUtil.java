@@ -1145,7 +1145,7 @@ public final class EntityUtil {
                 result.add(current);
             }
             Date nextInstanceTime = getNextInstanceTime(current, frequency, timeZone, 1);
-            if (nextInstanceTime.after(endRange)){
+            if (nextInstanceTime.after(endRange) ){
                 break;
             }
             current = nextInstanceTime;
