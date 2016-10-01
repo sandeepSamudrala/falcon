@@ -1144,11 +1144,10 @@ public final class EntityUtil {
                     && current.before(endTime) && !current.before(startTime)) {
                 result.add(current);
             }
-            Date nextInstanceTime = getNextInstanceTime(current, frequency, timeZone, 1);
-            if (nextInstanceTime.after(endRange) ){
+            current = getNextInstanceTime(current, frequency, timeZone, 1);
+            if (current.after(endRange)){
                 break;
             }
-            current = nextInstanceTime;
         }
         return result;
     }
