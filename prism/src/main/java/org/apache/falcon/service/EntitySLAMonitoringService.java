@@ -192,7 +192,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         if (entity.getEntityType() == EntityType.FEED) {
             Feed feed = (Feed) entity;
             // currently sla service is enabled only for fileSystemStorage
-            if (feed.getLocations() != null) {
+            if (feed.getSla() != null && feed.getLocations() != null) {
                 for (Cluster cluster : feed.getClusters().getClusters()) {
                     if (currentClusters.contains(cluster.getName()) && FeedHelper.getSLA(cluster, feed) != null) {
                         MONITORING_JDBC_STATE_STORE.deleteMonitoringEntity(feed.getName(), EntityType.FEED.toString());
@@ -289,7 +289,6 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
 
     @Override
     public void onReload(Entity entity) throws FalconException {
-        onAdd(entity);
     }
 
     @Override
@@ -419,13 +418,13 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
             return;
         }
         for(PendingInstanceBean pendingInstanceBean : MONITORING_JDBC_STATE_STORE.getAllPendingInstances()){
-            for (Date date : MONITORING_JDBC_STATE_STORE.getNominalInstances(pendingInstanceBean.getEntityName(),
+            for (Date instanceTime : MONITORING_JDBC_STATE_STORE.getNominalInstances(pendingInstanceBean.getEntityName(),
                     pendingInstanceBean.getClusterName(), entityType)) {
                 boolean status = checkEntityInstanceAvailability(pendingInstanceBean.getEntityName(),
-                        pendingInstanceBean.getClusterName(), date, entityType);
+                        pendingInstanceBean.getClusterName(), instanceTime, entityType);
                 if (status) {
                     MONITORING_JDBC_STATE_STORE.deletePendingInstance(pendingInstanceBean.getEntityName(),
-                            pendingInstanceBean.getClusterName(), date, EntityType.FEED.toString());
+                            pendingInstanceBean.getClusterName(), instanceTime, EntityType.FEED.toString());
                 }
             }
         }
@@ -473,8 +472,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
 
 
     /**
-     * Returns all {@link org.apache.falcon.entity.v0.feed.Feed} and {@link org.apache.falcon.entity.v0.process.Process}
-     * instances between given time range which have missed slaLow or slaHigh.
+     * Returns all the instances between given time range which have missed slaLow or slaHigh for given entity.
      *
      * Only entities which have defined sla in their definition are considered.
      * Only the entity instances between the given time range are considered.
@@ -528,13 +526,13 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
     }
 
     /**
-     * Returns all {@link org.apache.falcon.entity.v0.feed.Feed} instances of a given feed between the given time range
+     * Returns all the instances of a given entity between the given time range
      * which missed sla.Only those instances are included which have missed either slaLow or slaHigh.
      * @param entityName name of the feed
      * @param clusterName cluster name
      * @param start start time, inclusive
      * @param end end time, inclusive
-     * @return Pending feed instances of the given feed which belong to the given time range and have missed SLA.
+     * @return Pending instances of the given entity which belong to the given time range and have missed SLA.
      * @throws FalconException
      */
     public Set<SchedulableEntityInstance> getEntitySLAMissPendingAlerts(String entityName, String clusterName,
