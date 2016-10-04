@@ -353,8 +353,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         public void run() {
             try {
                 if (MONITORING_JDBC_STATE_STORE.getAllMonitoredEntities().size() > 0) {
-                    checkPendingInstanceAvailability(EntityType.FEED.toString());
-                    checkPendingInstanceAvailability(EntityType.PROCESS.toString());
+                    checkPendingInstanceAvailability();
 
                     // add Instances from last checked time to 10 minutes from now(some buffer for status check)
                     Date newCheckPointTime = new Date(now().getTime() + lookAheadWindowMillis);
@@ -412,19 +411,19 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
     /**
      * Checks the availability of all the pendingInstances and removes the ones which have become available.
      */
-    private void checkPendingInstanceAvailability(String entityType) throws FalconException {
+    private void checkPendingInstanceAvailability() throws FalconException {
         if (MONITORING_JDBC_STATE_STORE.getAllPendingInstances() == null){
             LOG.info("No pending instances to be checked");
             return;
         }
         for(PendingInstanceBean pendingInstanceBean : MONITORING_JDBC_STATE_STORE.getAllPendingInstances()){
             for (Date instanceTime : MONITORING_JDBC_STATE_STORE.getNominalInstances(pendingInstanceBean.getEntityName(),
-                    pendingInstanceBean.getClusterName(), entityType)) {
+                    pendingInstanceBean.getClusterName(), pendingInstanceBean.getEntityType())) {
                 boolean status = checkEntityInstanceAvailability(pendingInstanceBean.getEntityName(),
-                        pendingInstanceBean.getClusterName(), instanceTime, entityType);
+                        pendingInstanceBean.getClusterName(), instanceTime, pendingInstanceBean.getEntityType());
                 if (status) {
                     MONITORING_JDBC_STATE_STORE.deletePendingInstance(pendingInstanceBean.getEntityName(),
-                            pendingInstanceBean.getClusterName(), instanceTime, EntityType.FEED.toString());
+                            pendingInstanceBean.getClusterName(), instanceTime, pendingInstanceBean.getEntityType());
                 }
             }
         }
