@@ -47,7 +47,6 @@ import org.apache.falcon.hadoop.HadoopClientFactory;
 import org.apache.falcon.jdbc.MonitoringJdbcStateStore;
 import org.apache.falcon.persistence.MonitoredEntityBean;
 import org.apache.falcon.persistence.PendingInstanceBean;
-import org.apache.falcon.resource.APIResult;
 import org.apache.falcon.resource.InstancesResult;
 import org.apache.falcon.resource.SchedulableEntityInstance;
 import org.apache.falcon.security.CurrentUser;
@@ -441,7 +440,8 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                         + "instanceTime:{}", entity.getName(), clusterName, nominalTime, entityType);
                 AbstractWorkflowEngine wfEngine = WorkflowEngineFactory.getWorkflowEngine();
                 InstancesResult instancesResult = wfEngine.getStatus(entity, nominalTime, nominalTime, null, null);
-                if (instancesResult.getStatus().equals(APIResult.Status.SUCCEEDED)){
+                if (instancesResult.getInstances().length > 0
+                        && instancesResult.getInstances()[0].status.equals(InstancesResult.WorkflowStatus.SUCCEEDED)){
                     LOG.trace("Entity instance(Process:{}, cluster:{}, instanceTime:{}) is available.",
                             entity.getName(), clusterName, nominalTime);
                     return true;
