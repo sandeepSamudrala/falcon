@@ -20,7 +20,7 @@ package org.apache.falcon.plugin;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.falcon.aspect.ResourceMessage;
-import org.apache.falcon.entity.store.ConfigurationStore;
+import org.apache.falcon.entity.EntityUtil;
 import org.apache.falcon.entity.v0.Entity;
 import org.apache.falcon.entity.v0.EntityType;
 import org.apache.falcon.entity.v0.process.Process;
@@ -50,10 +50,9 @@ public class GraphiteNotificationPlugin implements MonitoringPlugin {
             String entityName = StringUtils.isNotBlank(message.getDimensions().get("entityName"))
                     ? message.getDimensions().get("entityName") :message.getDimensions().get("entity-name");
             String prefix = StartupProperties.get().getProperty("falcon.graphite.prefix");
-            String separator = ".";
             LOG.debug("message:" + message.getAction());
             if (entityType.equalsIgnoreCase(EntityType.PROCESS.name())) {
-                Entity entity = ConfigurationStore.get().get(EntityType.PROCESS, entityName);
+                Entity entity = EntityUtil.getEntity(EntityType.PROCESS, entityName);
                 Process process = (Process) entity;
                 String pipeline =  StringUtils.isNotBlank(process.getPipelines()) ? process.getPipelines() : "default";
 
