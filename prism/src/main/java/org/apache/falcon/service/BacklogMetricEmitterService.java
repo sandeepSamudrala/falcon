@@ -62,7 +62,7 @@ import static org.apache.falcon.workflow.WorkflowEngineFactory.getWorkflowEngine
 public final class BacklogMetricEmitterService implements FalconService,
         EntitySLAListener, WorkflowExecutionListener, ConfigurationChangeListener {
 
-    private static final String METRIC_PREFIX = "falcon";
+    private static final String METRIC_PREFIX = StartupProperties.get().getProperty("falcon.graphite.prefix");
     private static final String METRIC_SEPARATOR = ".";
     private static final String BACKLOG_METRIC_EMIT_INTERVAL = "falcon.backlog.metricservice.emit.interval.millisecs";
     private static final String BACKLOG_METRIC_RECHECK_INTERVAL = "falcon.backlog.metricservice."
