@@ -417,9 +417,8 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
             return;
         }
         for(PendingInstanceBean pendingInstanceBean : MONITORING_JDBC_STATE_STORE.getAllPendingInstances()){
-            for (Date instanceTime : MONITORING_JDBC_STATE_STORE.getNominalInstances(
-                    pendingInstanceBean.getEntityName(), pendingInstanceBean.getClusterName(),
-                    pendingInstanceBean.getEntityType())) {
+            for (Date instanceTime : MONITORING_JDBC_STATE_STORE.getNominalInstances(pendingInstanceBean.getEntityName(),
+                    pendingInstanceBean.getClusterName(), pendingInstanceBean.getEntityType())) {
                 boolean status = checkEntityInstanceAvailability(pendingInstanceBean.getEntityName(),
                         pendingInstanceBean.getClusterName(), instanceTime, pendingInstanceBean.getEntityType());
                 if (status) {
@@ -436,7 +435,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         Entity entity = EntityUtil.getEntity(entityType, entityName);
         authenticateUser();
         try {
-            if (entityType.equalsIgnoreCase(EntityType.PROCESS.toString())){
+            if (entityType.equals(EntityType.PROCESS.toString())){
                 LOG.trace("Checking instance availability status for entity:{}, cluster:{}, "
                         + "instanceTime:{}", entity.getName(), clusterName, nominalTime, entityType);
                 AbstractWorkflowEngine wfEngine = WorkflowEngineFactory.getWorkflowEngine();
@@ -448,7 +447,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                 }
                 return false;
             }
-            if (entityType.equalsIgnoreCase(EntityType.FEED.toString())){
+            if (entityType.equals(EntityType.FEED.toString())){
                 LOG.trace("Checking instance availability status for feed:{}, cluster:{}, instanceTime:{}",
                         entity.getName(), clusterName, nominalTime);
 
