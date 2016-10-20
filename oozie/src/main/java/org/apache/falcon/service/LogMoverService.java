@@ -51,7 +51,7 @@ public class LogMoverService implements WorkflowExecutionListener  {
 
     public int getCorePoolSize(){
         try{
-            return Integer.parseInt(StartupProperties.get().getProperty("falcon.logMoveService.CorePoolSize", "20"));
+            return Integer.parseInt(StartupProperties.get().getProperty("falcon.logMoveService.min.threadCount", "20"));
         } catch (NumberFormatException  e){
             LOG.error("Exception in LogMoverService", e);
             return 20;
@@ -59,10 +59,11 @@ public class LogMoverService implements WorkflowExecutionListener  {
     }
     public int getThreadCount() {
         try{
-            return Integer.parseInt(StartupProperties.get().getProperty("falcon.logMoveService.threadCount", "200"));
+            return Integer.parseInt(StartupProperties.get()
+                    .getProperty("falcon.logMoveService.max.threadCount", "200"));
         } catch (NumberFormatException  e){
             LOG.error("Exception in LogMoverService", e);
-            return 50;
+            return 200;
         }
     }
 
@@ -95,7 +96,7 @@ public class LogMoverService implements WorkflowExecutionListener  {
         if (Boolean.parseBoolean(ENABLE_POSTPROCESSING)) {
             return;
         }
-        while(0>=blockingQueue.remainingCapacity()){
+        while(blockingQueue.remainingCapacity()<=0){
             try {
                 LOG.trace("Sleeping, no capacity in threadpool....");
                 TimeUnit.MILLISECONDS.sleep(500);
