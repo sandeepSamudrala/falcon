@@ -112,7 +112,7 @@ public final class EntitySLAAlertService implements FalconService, EntitySLAList
         if (pendingInstanceBeanList == null || pendingInstanceBeanList.isEmpty()){
             return;
         }
-        LOG.trace("In processSLACandidates :" + pendingInstanceBeanList.size());
+        LOG.info("In processSLACandidates :" + pendingInstanceBeanList.size());
         try{
             for (PendingInstanceBean pendingInstanceBean : pendingInstanceBeanList) {
 
@@ -123,9 +123,9 @@ public final class EntitySLAAlertService implements FalconService, EntitySLAList
 
                 org.apache.falcon.entity.v0.cluster.Cluster cluster = ClusterHelper.getCluster(clusterName);
 
-                Set<SchedulableEntityInstance> schedulableEntityInstances= EntitySLAMonitoringService.get().
-                        getEntitySLAMissPendingAlerts(entityName, cluster.getName(), nominalTime, nominalTime
-                                , entityType);
+                Set<SchedulableEntityInstance> schedulableEntityInstances = EntitySLAMonitoringService.get().
+                        getEntitySLAMissPendingAlerts(entityName, cluster.getName(), nominalTime, nominalTime,
+                                entityType);
                 if (schedulableEntityInstances.isEmpty()){
                     store.deleteEntityAlertInstance(entityName, cluster.getName(), nominalTime,
                             entityType);
@@ -144,7 +144,7 @@ public final class EntitySLAAlertService implements FalconService, EntitySLAList
                 } else if (schedulableEntityInstance.getTags().contains(EntitySLAMonitoringService.get().TAG_CRITICAL)){
                     if (entityType.equalsIgnoreCase(EntityType.PROCESS.name())){
                         store.putSLAAlertInstance(entityName, clusterName, entityType,
-                                nominalTime, true, false);
+                                nominalTime, true, true);
                     }
                     store.updateSLAAlertInstance(entityName, clusterName, nominalTime, entityType);
                     LOG.info("Entity :{} EntityType : {} Cluster: {} Nominal Time: {} missed SLAHigh", entityName,

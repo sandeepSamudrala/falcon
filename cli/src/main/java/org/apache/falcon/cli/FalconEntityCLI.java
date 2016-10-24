@@ -243,7 +243,7 @@ public class FalconEntityCLI extends FalconCLI {
             validateNotEmpty(start, FalconCLIConstants.START_OPT);
             parseDateString(start);
             parseDateString(end);
-            SchedulableEntityInstanceResult response = client.getFeedSlaMissPendingAlerts(entityType,
+            SchedulableEntityInstanceResult response = client.getEntitySlaSummary(entityType,
                     entityName, start, end, colo);
             result = ResponseHelper.getString(response);
         } else if (optionsList.contains(FalconCLIConstants.SUBMIT_OPT)) {

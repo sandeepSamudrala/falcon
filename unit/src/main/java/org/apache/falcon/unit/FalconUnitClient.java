@@ -38,6 +38,7 @@ import org.apache.falcon.resource.FeedInstanceResult;
 import org.apache.falcon.resource.InstanceDependencyResult;
 import org.apache.falcon.resource.InstancesResult;
 import org.apache.falcon.resource.InstancesSummaryResult;
+import org.apache.falcon.resource.SchedulableEntityInstanceResult;
 import org.apache.falcon.resource.admin.AdminResource;
 import org.apache.falcon.util.DateUtil;
 import org.apache.falcon.workflow.WorkflowEngineFactory;
@@ -157,6 +158,13 @@ public class FalconUnitClient extends AbstractFalconClient {
     public Entity getDefinition(String entityType, String entityName, String doAsUser) throws FalconCLIException {
         String entity = localSchedulableEntityManager.getEntityDefinition(entityType, entityName);
         return Entity.fromString(EntityType.getEnum(entityType), entity);
+    }
+
+    @Override
+    public SchedulableEntityInstanceResult getEntitySlaSummary(String entityName, String entityType, String startStr,
+                                                               String endStr, String colo) {
+        return localSchedulableEntityManager.getEntitySLAMissPendingAlerts(entityName, entityType, startStr, endStr,
+                colo);
     }
 
     //SUSPEND CHECKSTYLE CHECK ParameterNumberCheck

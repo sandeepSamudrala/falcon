@@ -141,7 +141,7 @@ public class EntitySLAAlertServiceTest extends AbstractTestBase {
                 dateOne, EntityType.FEED.toString()).getIsSLALowMissed());
     }
 
-    @Test(expectedExceptions = javax.persistence.NoResultException.class)
+    @Test
     public static void processSLACandidateProcess() throws FalconException, InterruptedException{
         Date dateOne =  new Date(System.currentTimeMillis()-130000);
 
@@ -172,6 +172,7 @@ public class EntitySLAAlertServiceTest extends AbstractTestBase {
 
 
         Thread.sleep(10*1000);
+        // process is not scheduled.
         Assert.assertTrue(monitoringJdbcStateStore.getEntityAlertInstance("test-process", "test-cluster", dateOne,
                 EntityType.PROCESS.name()).getIsSLAHighMissed());
 

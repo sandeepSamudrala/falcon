@@ -21,8 +21,11 @@ import org.apache.falcon.FalconException;
 import org.apache.falcon.FalconWebException;
 import org.apache.falcon.client.FalconCLIException;
 import org.apache.falcon.entity.v0.EntityType;
+import org.apache.falcon.entity.v0.SchemaHelper;
+import org.apache.falcon.entity.v0.process.Cluster;
 import org.apache.falcon.entity.v0.process.Process;
 import org.apache.falcon.entity.v0.process.Property;
+import org.apache.falcon.entity.v0.process.Validity;
 import org.apache.falcon.resource.APIResult;
 import org.apache.falcon.resource.EntityList;
 import org.apache.falcon.resource.EntitySummaryResult;
@@ -30,6 +33,7 @@ import org.apache.falcon.resource.FeedInstanceResult;
 import org.apache.falcon.resource.InstanceDependencyResult;
 import org.apache.falcon.resource.InstancesResult;
 import org.apache.falcon.resource.InstancesSummaryResult;
+import org.apache.falcon.resource.SchedulableEntityInstanceResult;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.testng.Assert;
@@ -40,6 +44,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.Date;
 
 import static org.apache.falcon.entity.EntityUtil.getEntity;
 
@@ -107,25 +112,41 @@ public class TestFalconUnit extends FalconUnitTestBase {
     }
 
     @Test
-    public void testSuspendAndResume() throws Exception {
+    public void testSuspendAndResumeWithSla() throws Exception {
         submitClusterAndFeeds();
+        deleteData(INPUT_FEED_NAME, CLUSTER_NAME);
         // submitting and scheduling process;
-        createData(INPUT_FEED_NAME, CLUSTER_NAME, SCHEDULE_TIME, INPUT_FILE_NAME);
         APIResult result = submitProcess(getAbsolutePath(PROCESS), PROCESS_APP_PATH);
         assertStatus(result);
+        SchedulableEntityInstanceResult instanceResult = getClient().getEntitySlaSummary(PROCESS_NAME, "process",
+                SCHEDULE_TIME, SCHEDULE_TIME, null);
+        // submitted but not scheduled and so sla should return 0 instances.
+        Assert.assertEquals(instanceResult.getInstances().length , 0);
         result = scheduleProcess(PROCESS_NAME, SCHEDULE_TIME, 2, CLUSTER_NAME, getAbsolutePath(WORKFLOW), true, "");
         assertStatus(result);
+        waitForStatus(EntityType.PROCESS.name(), PROCESS_NAME, SCHEDULE_TIME, InstancesResult.WorkflowStatus.WAITING);
+        //scheduled and so sla summary returns
+        instanceResult = getClient().getEntitySlaSummary(PROCESS_NAME, "process", SCHEDULE_TIME, SCHEDULE_TIME, null);
+        Assert.assertEquals(instanceResult.getInstances().length , 1);
+
+        createData(INPUT_FEED_NAME, CLUSTER_NAME, SCHEDULE_TIME, INPUT_FILE_NAME);
         waitForStatus(EntityType.PROCESS.name(), PROCESS_NAME, SCHEDULE_TIME, InstancesResult.WorkflowStatus.SUCCEEDED);
+
         result = getClient().suspend(EntityType.PROCESS, PROCESS_NAME, CLUSTER_NAME, null);
         assertStatus(result);
         result = getClient().getStatus(EntityType.PROCESS, PROCESS_NAME, CLUSTER_NAME, null, false);
         assertStatus(result);
         Assert.assertEquals(result.getMessage(), "SUSPENDED");
+        //suspended so result is empty for SLA summary
+        instanceResult = getClient().getEntitySlaSummary(PROCESS_NAME, "process", SCHEDULE_TIME, SCHEDULE_TIME, null);
+        Assert.assertEquals(instanceResult.getInstances().length , 0);
+
         result = getClient().resume(EntityType.PROCESS, PROCESS_NAME, CLUSTER_NAME, null);
         assertStatus(result);
         result = getClient().getStatus(EntityType.PROCESS, PROCESS_NAME, CLUSTER_NAME, null, false);
         assertStatus(result);
         Assert.assertEquals(result.getMessage(), "RUNNING");
+        getClient().delete(EntityType.PROCESS, PROCESS_NAME, null);
     }
 
     @Test
@@ -180,20 +201,27 @@ public class TestFalconUnit extends FalconUnitTestBase {
     public void testUpdateAndTouch() throws IOException, FalconCLIException, FalconException, ParseException,
             InterruptedException {
         submitClusterAndFeeds();
+        deleteData(INPUT_FEED_NAME, CLUSTER_NAME);
         APIResult result = submitProcess(getAbsolutePath(PROCESS), PROCESS_APP_PATH);
-        assertStatus(result);
-        result = getClient().update(EntityType.PROCESS.name(), PROCESS_NAME,
-                getAbsolutePath(PROCESS), true, null);
-        assertStatus(result);
-        createData(INPUT_FEED_NAME, CLUSTER_NAME, SCHEDULE_TIME, INPUT_FILE_NAME);
-        result = submitProcess(getAbsolutePath(PROCESS), PROCESS_APP_PATH);
         assertStatus(result);
         result = scheduleProcess(PROCESS_NAME, SCHEDULE_TIME, 1, CLUSTER_NAME, getAbsolutePath(WORKFLOW), true, "");
         assertStatus(result);
-        waitForStatus(EntityType.PROCESS.name(), PROCESS_NAME, SCHEDULE_TIME, InstancesResult.WorkflowStatus.SUCCEEDED);
+        waitForStatus(EntityType.PROCESS.name(), PROCESS_NAME, SCHEDULE_TIME, InstancesResult.WorkflowStatus.WAITING);
 
-        Process process = getEntity(EntityType.PROCESS, PROCESS_NAME);
+        SchedulableEntityInstanceResult instanceResult = getClient().getEntitySlaSummary(PROCESS_NAME, "process",
+                SCHEDULE_TIME, SCHEDULE_TIME, null);
+        Assert.assertEquals(instanceResult.getInstances().length , 1);
+
+        Process process = (Process)getEntity(EntityType.PROCESS, PROCESS_NAME).copy();
         setDummyProperty(process);
+        process.setSla(null);
+        Validity validity = new Validity();
+        Date startTime = SchemaHelper.parseDateUTC(SCHEDULE_TIME);
+        validity.setStart(startTime);
+        validity.setEnd(SchemaHelper.parseDateUTC("2099-10-24T00:07Z"));
+        for (Cluster processCluster : process.getClusters().getClusters()) {
+            processCluster.setValidity(validity);
+        }
         String processXml = process.toString();
         File file = new File("target/newprocess.xml");
         file.createNewFile();
@@ -204,6 +232,14 @@ public class TestFalconUnit extends FalconUnitTestBase {
 
         result = falconUnitClient.update(EntityType.PROCESS.name(), PROCESS_NAME, file.getAbsolutePath(), true, null);
         assertStatus(result);
+
+        instanceResult = getClient().getEntitySlaSummary(PROCESS_NAME, "process", SCHEDULE_TIME, SCHEDULE_TIME, null);
+        // SLA is removed and so should result in 0 instances.
+        Assert.assertEquals(instanceResult.getInstances().length , 0);
+
+        createData(INPUT_FEED_NAME, CLUSTER_NAME, SCHEDULE_TIME, INPUT_FILE_NAME);
+        waitForStatus(EntityType.PROCESS.name(), PROCESS_NAME, SCHEDULE_TIME, InstancesResult.WorkflowStatus.SUCCEEDED);
+
         result = falconUnitClient.touch(EntityType.PROCESS.name(), PROCESS_NAME, null, true, null);
         assertStatus(result);
 
