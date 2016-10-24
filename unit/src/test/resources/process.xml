@@ -17,7 +17,8 @@
   limitations under the License.
   -->
 
-<process name="process" xmlns="uri:falcon:process:0.1">
+<process name="process" version="0" xmlns="uri:falcon:process:0.1">
+    <pipelines>pipe1,pipe2,pipe3</pipelines>
     <clusters>
         <cluster name="local">
             <validity start="2013-11-18T00:05Z" end="2013-11-21T01:05Z"/>
@@ -27,6 +28,7 @@
     <parallel>5</parallel>
     <order>FIFO</order>
     <frequency>minutes(1)</frequency>
+    <sla shouldStartIn="minutes(1)" shouldEndIn="minutes(3)"/>
     <timezone>UTC</timezone>
 
     <inputs>

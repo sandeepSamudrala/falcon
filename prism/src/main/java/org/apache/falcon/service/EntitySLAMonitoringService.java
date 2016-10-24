@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.falcon.FalconException;
 import org.apache.falcon.Pair;
 import org.apache.falcon.entity.ClusterHelper;
@@ -43,7 +44,6 @@ import org.apache.falcon.entity.v0.feed.Sla;
 import org.apache.falcon.entity.v0.process.Clusters;
 import org.apache.falcon.entity.v0.process.Process;
 import org.apache.falcon.expression.ExpressionHelper;
-import org.apache.falcon.hadoop.HadoopClientFactory;
 import org.apache.falcon.jdbc.MonitoringJdbcStateStore;
 import org.apache.falcon.persistence.MonitoredEntityBean;
 import org.apache.falcon.persistence.PendingInstanceBean;
@@ -56,7 +56,6 @@ import org.apache.falcon.util.StartupProperties;
 import org.apache.falcon.workflow.WorkflowEngineFactory;
 import org.apache.falcon.workflow.engine.AbstractWorkflowEngine;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.slf4j.Logger;
@@ -73,8 +72,6 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
 
     private static final MonitoringJdbcStateStore MONITORING_JDBC_STATE_STORE = new MonitoringJdbcStateStore();
 
-    private static final int ONE_MS = 1;
-
     private static final EntitySLAMonitoringService SERVICE = new EntitySLAMonitoringService();
 
     public static final String TAG_CRITICAL = "Missed-SLA-High";
@@ -90,12 +87,6 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
     }
 
     /**
-     * Permissions for storePath.
-     */
-    private static final FsPermission STORE_PERMISSION = new FsPermission(FsAction.ALL, FsAction.NONE, FsAction.NONE);
-
-
-    /**
      * Frequency in seconds of "status check" for pending entity instances.
      */
     private int statusCheckFrequencySeconds; // 10 minutes
@@ -108,24 +99,12 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
      */
     private int lookAheadWindowMillis; // 15 MINUTES
 
-
-    /**
-     * Filesystem used for serializing and deserializing.
-     */
-    private FileSystem fileSystem;
-
-    /**
-     * Working directory for the entity sla monitoring service.
-     */
-    private Path storePath;
-
-    /**
-     * Path to store the state of the monitoring service.
-     */
-    private Path filePath;
-
     @Override
     public void onAdd(Entity entity) throws FalconException {
+        startEntityMonitoring(entity, false);
+    }
+
+    private void startEntityMonitoring(Entity entity, boolean isEntityUpdated) throws FalconException{
         Set<String> currentClusters = DeploymentUtil.getCurrentClusters();
         Set<String> clustersDefined = EntityUtil.getClustersDefined(entity);
         if (entity.getEntityType() == EntityType.FEED) {
@@ -137,26 +116,40 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                         if (FeedHelper.getSLA(cluster, feed) != null) {
                             LOG.debug("Adding feed:{} for monitoring", feed.getName());
                             MONITORING_JDBC_STATE_STORE.putMonitoredEntity(feed.getName(), EntityType.FEED.toString(),
-                                    new Date(now().getTime() + MINUTE_DELAY));
-                            List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, cluster,
-                                    getStartTime(entity, cluster), now());
-                            addPendingInstances(entity.getEntityType().name().toLowerCase(), entity, cluster,
-                                    instances);
+                                        new Date(now().getTime() + MINUTE_DELAY));
+                            if (!isEntityUpdated) {
+                                List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, cluster,
+                                        getStartTime(entity, cluster), now());
+                                addPendingInstances(entity.getEntityType().name().toLowerCase(), entity, cluster,
+                                        instances);
+                            }
                         }
                     }
                 }
             }
         } else if (entity.getEntityType() == EntityType.PROCESS) {
+            AbstractWorkflowEngine workflowEngine = WorkflowEngineFactory.getWorkflowEngine();
             Process process = (Process) entity;
             if (process.getSla() != null || checkProcessClusterSLA(process)) {
                 for (String cluster : clustersDefined) {
                     if (currentClusters.contains(cluster)) {
                         LOG.debug("Adding process:{} for monitoring", process.getName());
-                        MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
-                                EntityType.PROCESS.toString(), new Date(now().getTime() + MINUTE_DELAY));
-                        List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, cluster,
-                                getStartTime(entity, cluster), now());
-                        addPendingInstances(entity.getEntityType().name().toLowerCase(), entity, cluster, instances);
+                        if (isEntityUpdated) {
+                            MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
+                                    EntityType.PROCESS.toString(), new Date(now().getTime() + MINUTE_DELAY));
+                        } else {
+                            if (workflowEngine.isActive(entity)) {
+                                MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
+                                        EntityType.PROCESS.toString(), new Date(now().getTime() + MINUTE_DELAY));
+                                List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, cluster,
+                                        getStartTime(entity, cluster), now());
+                                addPendingInstances(entity.getEntityType().name().toLowerCase(), entity, cluster,
+                                        instances);
+                            } else {
+                                MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
+                                        EntityType.PROCESS.toString(), getStartTime(entity, cluster));
+                            }
+                        }
                     }
                 }
             }
@@ -247,7 +240,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
             if (!isSLAMonitoringEnabledInCurrentColo(newFeed)) {
                 onRemove(oldFeed);
             } else if (!isSLAMonitoringEnabledInCurrentColo(oldFeed)) {
-                onAdd(newFeed);
+                startEntityMonitoring(newFeed, true);
             } else {
                 List<String> slaRemovedClusters = new ArrayList<>();
                 for (String oldCluster : EntityUtil.getClustersDefinedInColos(oldFeed)) {
@@ -265,7 +258,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
             if (!isSLAMonitoringEnabledInCurrentColo(newProcess)){
                 onRemove(oldProcess);
             } else if (!isSLAMonitoringEnabledInCurrentColo(oldProcess)){
-                onAdd(newProcess);
+                startEntityMonitoring(newProcess, true);
             } else {
                 List<String> slaRemovedClusters = new ArrayList<>();
                 for (String oldCluster : EntityUtil.getClustersDefined(oldProcess)){
@@ -297,17 +290,12 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
 
     @Override
     public void init() throws FalconException {
-        String uri = StartupProperties.get().getProperty("entity.sla.service.store.uri");
-        storePath = new Path(uri);
-        filePath = new Path(storePath, "entitySLAMonitoringService");
-        fileSystem = initializeFileSystem();
 
         String freq = StartupProperties.get().getProperty("entity.sla.statusCheck.frequency.seconds", "600");
         statusCheckFrequencySeconds = Integer.parseInt(freq);
 
         freq = StartupProperties.get().getProperty("entity.sla.lookAheadWindow.millis", "900000");
         lookAheadWindowMillis = Integer.parseInt(freq);
-        LOG.info("Initializing EntitySLAMonitoringService from ", filePath.toString());
         ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
         addPendingEntityInstances(EntityType.FEED.name(), null, now());
         addPendingEntityInstances(EntityType.PROCESS.name(), null, now());
@@ -327,20 +315,6 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         }
     }
 
-    private FileSystem initializeFileSystem() {
-        try {
-            fileSystem = HadoopClientFactory.get().createFalconFileSystem(storePath.toUri());
-            if (!fileSystem.exists(storePath)) {
-                LOG.info("Creating directory for pending entity instances: {}", storePath);
-                // set permissions so config store dir is owned by falcon alone
-                HadoopClientFactory.mkdirs(fileSystem, storePath, STORE_PERMISSION);
-            }
-            return fileSystem;
-        } catch (Exception e) {
-            throw new RuntimeException("Unable to bring up entity sla store for path: " + storePath, e);
-        }
-    }
-
     @Override
     public void destroy() throws FalconException {
     }
@@ -352,16 +326,19 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         public void run() {
             try {
                 if (MONITORING_JDBC_STATE_STORE.getAllMonitoredEntities().size() > 0) {
-                    checkPendingInstanceAvailability(EntityType.FEED.toString());
-                    checkPendingInstanceAvailability(EntityType.PROCESS.toString());
+                    checkPendingInstanceAvailability();
 
                     // add Instances from last checked time to 10 minutes from now(some buffer for status check)
                     Date newCheckPointTime = new Date(now().getTime() + lookAheadWindowMillis);
                     addPendingEntityInstances(EntityType.FEED.toString(), null, newCheckPointTime);
                     addPendingEntityInstances(EntityType.PROCESS.toString(), null, newCheckPointTime);
                 }
-            } catch (Throwable e) {
-                LOG.error("Feed SLA monitoring failed: ", e);
+            } catch (Exception e) {
+                if (ExceptionUtils.getRootCause(e) instanceof InterruptedException) {
+                    LOG.info("Entity SLA Monitoring service has been interrupted");
+                } else {
+                    LOG.error("Entity SLA monitoring failed: ", e);
+                }
             }
         }
     }
@@ -383,25 +360,29 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         Set<String> currentClusters = DeploymentUtil.getCurrentClusters();
         List<MonitoredEntityBean> entityBeanList = MONITORING_JDBC_STATE_STORE.
                 getAllMonitoredEntities(entityType);
+        AbstractWorkflowEngine workflowEngine = WorkflowEngineFactory.getWorkflowEngine();
         for(MonitoredEntityBean monitoredEntityBean : entityBeanList) {
             String entityName = monitoredEntityBean.getEntityName();
-            Date lastMonitoredInstanceTime = (startTime != null) ? startTime
-                    : monitoredEntityBean.getLastMonitoredTime();
-            Date newCheckPointTime = endTime != null ? endTime : now();
-            Entity entity = EntityUtil.getEntity(entityType, entityName);
-            Set<String> clustersDefined =  EntityUtil.getClustersDefined(entity);
-            List<org.apache.falcon.entity.v0.cluster.Cluster> clusters = new ArrayList();
-            for(String cluster : clustersDefined){
-                clusters.add(ClusterHelper.getCluster(cluster));
-            }
-            for (org.apache.falcon.entity.v0.cluster.Cluster entityCluster : clusters) {
-                if (currentClusters.contains(entityCluster.getName())) {
-                    List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, entityCluster.getName(),
-                            lastMonitoredInstanceTime, newCheckPointTime);
-                    addPendingInstances(entityType, entity, entityCluster.getName(), instances);
-                    // update last monitored time with the new checkpoint time
-                    MONITORING_JDBC_STATE_STORE.updateLastMonitoredTime(entityName, entityType,
-                            new Date(newCheckPointTime.getTime() + MINUTE_DELAY));
+            if (EntityType.FEED.name().equals(entityType)
+                    || workflowEngine.isActive(EntityUtil.getEntity(entityType, entityName))) {
+                Date lastMonitoredInstanceTime = (startTime != null) ? startTime
+                        : monitoredEntityBean.getLastMonitoredTime();
+                Date newCheckPointTime = endTime != null ? endTime : now();
+                Entity entity = EntityUtil.getEntity(entityType, entityName);
+                Set<String> clustersDefined = EntityUtil.getClustersDefined(entity);
+                List<org.apache.falcon.entity.v0.cluster.Cluster> clusters = new ArrayList();
+                for (String cluster : clustersDefined) {
+                    clusters.add(ClusterHelper.getCluster(cluster));
+                }
+                for (org.apache.falcon.entity.v0.cluster.Cluster entityCluster : clusters) {
+                    if (currentClusters.contains(entityCluster.getName())) {
+                        List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity,
+                                entityCluster.getName(), lastMonitoredInstanceTime, newCheckPointTime);
+                        addPendingInstances(entityType, entity, entityCluster.getName(), instances);
+                        // update last monitored time with the new checkpoint time
+                        MONITORING_JDBC_STATE_STORE.updateLastMonitoredTime(entityName, entityType,
+                                new Date(newCheckPointTime.getTime() + MINUTE_DELAY));
+                    }
                 }
             }
         }
@@ -411,19 +392,20 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
     /**
      * Checks the availability of all the pendingInstances and removes the ones which have become available.
      */
-    private void checkPendingInstanceAvailability(String entityType) throws FalconException {
+    private void checkPendingInstanceAvailability() throws FalconException {
         if (MONITORING_JDBC_STATE_STORE.getAllPendingInstances() == null){
             LOG.info("No pending instances to be checked");
             return;
         }
         for(PendingInstanceBean pendingInstanceBean : MONITORING_JDBC_STATE_STORE.getAllPendingInstances()){
-            for (Date instanceTime : MONITORING_JDBC_STATE_STORE.getNominalInstances(pendingInstanceBean.getEntityName(),
-                    pendingInstanceBean.getClusterName(), entityType)) {
+            for (Date instanceTime : MONITORING_JDBC_STATE_STORE.getNominalInstances(
+                    pendingInstanceBean.getEntityName(), pendingInstanceBean.getClusterName(),
+                    pendingInstanceBean.getEntityType())) {
                 boolean status = checkEntityInstanceAvailability(pendingInstanceBean.getEntityName(),
-                        pendingInstanceBean.getClusterName(), instanceTime, entityType);
+                        pendingInstanceBean.getClusterName(), instanceTime, pendingInstanceBean.getEntityType());
                 if (status) {
                     MONITORING_JDBC_STATE_STORE.deletePendingInstance(pendingInstanceBean.getEntityName(),
-                            pendingInstanceBean.getClusterName(), instanceTime, EntityType.FEED.toString());
+                            pendingInstanceBean.getClusterName(), instanceTime, pendingInstanceBean.getEntityType());
                 }
             }
         }
@@ -435,7 +417,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         Entity entity = EntityUtil.getEntity(entityType, entityName);
         authenticateUser();
         try {
-            if (entityType.equals(EntityType.PROCESS.toString())){
+            if (entityType.equalsIgnoreCase(EntityType.PROCESS.toString())){
                 LOG.trace("Checking instance availability status for entity:{}, cluster:{}, "
                         + "instanceTime:{}", entity.getName(), clusterName, nominalTime, entityType);
                 AbstractWorkflowEngine wfEngine = WorkflowEngineFactory.getWorkflowEngine();
@@ -448,7 +430,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                 }
                 return false;
             }
-            if (entityType.equals(EntityType.FEED.toString())){
+            if (entityType.equalsIgnoreCase(EntityType.FEED.toString())){
                 LOG.trace("Checking instance availability status for feed:{}, cluster:{}, instanceTime:{}",
                         entity.getName(), clusterName, nominalTime);
 

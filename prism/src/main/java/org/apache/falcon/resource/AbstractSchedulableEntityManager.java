@@ -158,33 +158,37 @@ public abstract class AbstractSchedulableEntityManager extends AbstractInstanceM
 
     /**
      * Returns the entity instances which are not yet available and have missed either slaLow or slaHigh.
-     * This api doesn't return the entitites which missed SLA but are now available. Purpose of this api is to
+     * This api doesn't return the entities which missed SLA but are now available. Purpose of this api is to
      * show entity instances which you need to attend to.
      * @param startStr startTime in
      * @param endStr
      */
     public SchedulableEntityInstanceResult getEntitySLAMissPendingAlerts(String entityName, String entityType,
-                                                                         String startStr, String endStr, String colo) {
-
+                                                                             String startStr, String endStr,
+                                                                             String colo) {
         Set<SchedulableEntityInstance> instances = new HashSet<>();
+        String resultMessage = "Success!";
         try {
             checkColo(colo);
             Date start = EntityUtil.parseDateUTC(startStr);
             Date end = (endStr == null) ? new Date() : EntityUtil.parseDateUTC(endStr);
-
             if (StringUtils.isBlank(entityName)) {
                 instances.addAll(EntitySLAMonitoringService.get().getEntitySLAMissPendingAlerts(start, end));
             } else {
-                for (String clusterName : DeploymentUtil.getCurrentClusters()) {
-                    instances.addAll(EntitySLAMonitoringService.get().getEntitySLAMissPendingAlerts(entityName,
-                            clusterName, start, end, entityType));
+                if (getStatusString(EntityUtil.getEntity(entityType, entityName)).equals(EntityStatus.RUNNING.name())) {
+                    for (String clusterName : DeploymentUtil.getCurrentClusters()) {
+                        instances.addAll(EntitySLAMonitoringService.get().getEntitySLAMissPendingAlerts(entityName,
+                                clusterName, start, end, entityType));
+                    }
+                } else {
+                    resultMessage = entityName + "is not running";
                 }
             }
         } catch (FalconException e) {
             throw FalconWebException.newAPIException(e);
         }
         SchedulableEntityInstanceResult result = new SchedulableEntityInstanceResult(APIResult.Status.SUCCEEDED,
-                "Success!");
+                resultMessage);
         result.setCollection(instances.toArray());
         return result;
     }
