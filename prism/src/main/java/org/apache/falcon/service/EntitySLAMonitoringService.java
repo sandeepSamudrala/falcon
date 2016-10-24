@@ -55,9 +55,6 @@ import org.apache.falcon.util.DeploymentUtil;
 import org.apache.falcon.util.StartupProperties;
 import org.apache.falcon.workflow.WorkflowEngineFactory;
 import org.apache.falcon.workflow.engine.AbstractWorkflowEngine;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.permission.FsAction;
-import org.apache.hadoop.fs.permission.FsPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,7 +106,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         Set<String> clustersDefined = EntityUtil.getClustersDefined(entity);
         if (entity.getEntityType() == EntityType.FEED) {
             Feed feed = (Feed) entity;
-            // currently sla service is enabled only for fileSystemStorage
+            // currently sla service for feed is enabled only for fileSystemStorage
             if (feed.getLocations() != null || feed.getSla() != null || checkFeedClusterSLA(feed)) {
                 for (String cluster : clustersDefined) {
                     if (currentClusters.contains(cluster)) {
@@ -183,7 +180,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         Set<String> currentClusters = DeploymentUtil.getCurrentClusters();
         if (entity.getEntityType() == EntityType.FEED) {
             Feed feed = (Feed) entity;
-            // currently sla service is enabled only for fileSystemStorage
+            // currently sla service for feed is enabled only for fileSystemStorage
             if (feed.getSla() != null && feed.getLocations() != null) {
                 for (Cluster cluster : feed.getClusters().getClusters()) {
                     if (currentClusters.contains(cluster.getName()) && FeedHelper.getSLA(cluster, feed) != null) {
@@ -297,8 +294,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         freq = StartupProperties.get().getProperty("entity.sla.lookAheadWindow.millis", "900000");
         lookAheadWindowMillis = Integer.parseInt(freq);
         ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
-        addPendingEntityInstances(EntityType.FEED.name(), null, now());
-        addPendingEntityInstances(EntityType.PROCESS.name(), null, now());
+        addPendingEntityInstances(now());
         executor.scheduleWithFixedDelay(new Monitor(), 0, statusCheckFrequencySeconds, TimeUnit.SECONDS);
     }
 
@@ -330,8 +326,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
 
                     // add Instances from last checked time to 10 minutes from now(some buffer for status check)
                     Date newCheckPointTime = new Date(now().getTime() + lookAheadWindowMillis);
-                    addPendingEntityInstances(EntityType.FEED.toString(), null, newCheckPointTime);
-                    addPendingEntityInstances(EntityType.PROCESS.toString(), null, newCheckPointTime);
+                    addPendingEntityInstances(newCheckPointTime);
                 }
             } catch (Exception e) {
                 if (ExceptionUtils.getRootCause(e) instanceof InterruptedException) {
@@ -356,17 +351,16 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         }
     }
 
-    void addPendingEntityInstances(String entityType, Date startTime, Date endTime) throws FalconException {
+    void addPendingEntityInstances(Date endTime) throws FalconException {
         Set<String> currentClusters = DeploymentUtil.getCurrentClusters();
-        List<MonitoredEntityBean> entityBeanList = MONITORING_JDBC_STATE_STORE.
-                getAllMonitoredEntities(entityType);
+        List<MonitoredEntityBean> entityBeanList = MONITORING_JDBC_STATE_STORE.getAllMonitoredEntities();
         AbstractWorkflowEngine workflowEngine = WorkflowEngineFactory.getWorkflowEngine();
         for(MonitoredEntityBean monitoredEntityBean : entityBeanList) {
             String entityName = monitoredEntityBean.getEntityName();
+            String entityType = monitoredEntityBean.getEntityType();
             if (EntityType.FEED.name().equals(entityType)
-                    || workflowEngine.isActive(EntityUtil.getEntity(entityType, entityName))) {
-                Date lastMonitoredInstanceTime = (startTime != null) ? startTime
-                        : monitoredEntityBean.getLastMonitoredTime();
+                    || !workflowEngine.isSuspended(EntityUtil.getEntity(entityType, entityName))) {
+                Date lastMonitoredInstanceTime = monitoredEntityBean.getLastMonitoredTime();
                 Date newCheckPointTime = endTime != null ? endTime : now();
                 Entity entity = EntityUtil.getEntity(entityType, entityName);
                 Set<String> clustersDefined = EntityUtil.getClustersDefined(entity);

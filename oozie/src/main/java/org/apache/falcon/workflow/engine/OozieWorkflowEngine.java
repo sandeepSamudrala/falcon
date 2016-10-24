@@ -131,7 +131,7 @@ public class OozieWorkflowEngine extends AbstractWorkflowEngine {
     );
 
     private static final String[] BUNDLE_UPDATEABLE_PROPS =
-        new String[]{"parallel", "clusters.clusters[\\d+].validity.end", "sla", };
+        new String[]{"parallel", "clusters.clusters[\\d+].validity.end", };
 
     public static final ConfigurationStore STORE = ConfigurationStore.get();
 

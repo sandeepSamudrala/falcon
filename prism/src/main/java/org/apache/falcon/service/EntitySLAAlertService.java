@@ -112,7 +112,7 @@ public final class EntitySLAAlertService implements FalconService, EntitySLAList
         if (pendingInstanceBeanList == null || pendingInstanceBeanList.isEmpty()){
             return;
         }
-        LOG.info("In processSLACandidates :" + pendingInstanceBeanList.size());
+        LOG.trace("In processSLACandidates :" + pendingInstanceBeanList.size());
         try{
             for (PendingInstanceBean pendingInstanceBean : pendingInstanceBeanList) {
 
@@ -163,7 +163,7 @@ public final class EntitySLAAlertService implements FalconService, EntitySLAList
                               ) throws FalconException {
         for (EntitySLAListener listener : listeners) {
             listener.highSLAMissed(entityName, clusterName, entityType, nominalTime);
-            store.deleteEntityAlertInstance(entityName, clusterName, nominalTime, entityType.name());
         }
+        store.deleteEntityAlertInstance(entityName, clusterName, nominalTime, entityType.name());
     }
 }
