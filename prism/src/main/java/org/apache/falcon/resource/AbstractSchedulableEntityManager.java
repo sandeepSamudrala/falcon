@@ -175,13 +175,14 @@ public abstract class AbstractSchedulableEntityManager extends AbstractInstanceM
             if (StringUtils.isBlank(entityName)) {
                 instances.addAll(EntitySLAMonitoringService.get().getEntitySLAMissPendingAlerts(start, end));
             } else {
-                if (getStatusString(EntityUtil.getEntity(entityType, entityName)).equals(EntityStatus.RUNNING.name())) {
+                String status = getStatusString(EntityUtil.getEntity(entityType, entityName));
+                if (status.equals(EntityStatus.RUNNING.name())) {
                     for (String clusterName : DeploymentUtil.getCurrentClusters()) {
                         instances.addAll(EntitySLAMonitoringService.get().getEntitySLAMissPendingAlerts(entityName,
                                 clusterName, start, end, entityType));
                     }
                 } else {
-                    resultMessage = entityName + "is not running";
+                    resultMessage = entityName + " is " + status;
                 }
             }
         } catch (FalconException e) {

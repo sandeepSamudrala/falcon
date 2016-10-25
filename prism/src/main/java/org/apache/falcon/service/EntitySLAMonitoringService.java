@@ -112,9 +112,12 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                     if (currentClusters.contains(cluster)) {
                         if (FeedHelper.getSLA(cluster, feed) != null) {
                             LOG.debug("Adding feed:{} for monitoring", feed.getName());
-                            MONITORING_JDBC_STATE_STORE.putMonitoredEntity(feed.getName(), EntityType.FEED.toString(),
-                                        new Date(now().getTime() + MINUTE_DELAY));
-                            if (!isEntityUpdated) {
+                            if (isEntityUpdated) {
+                                MONITORING_JDBC_STATE_STORE.putMonitoredEntity(feed.getName(),
+                                        EntityType.FEED.toString(), now());
+                            } else {
+                                MONITORING_JDBC_STATE_STORE.putMonitoredEntity(feed.getName(),
+                                        EntityType.FEED.toString(), new Date(now().getTime() + MINUTE_DELAY));
                                 List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, cluster,
                                         getStartTime(entity, cluster), now());
                                 addPendingInstances(entity.getEntityType().name().toLowerCase(), entity, cluster,
@@ -132,7 +135,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                         LOG.debug("Adding process:{} for monitoring", process.getName());
                         if (isEntityUpdated) {
                             MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
-                                    EntityType.PROCESS.toString(), new Date(now().getTime() + MINUTE_DELAY));
+                                    EntityType.PROCESS.toString(), now());
                         } else {
                             if (isEntityRunning(entity)) {
                                 MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
@@ -483,7 +486,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                 org.apache.falcon.entity.v0.process.Cluster cluster = ProcessHelper.getCluster(process,
                         entityClusterPair.second);
                 org.apache.falcon.entity.v0.process.Sla sla = ProcessHelper.getSLA(cluster, process);
-                if (sla != null){
+                if (sla != null && isEntityRunning(process)){
                     Set<Pair<Date, String>> slaStatus = getProcessSLAStatus(sla, start, end,
                             MONITORING_JDBC_STATE_STORE.getNominalInstances(entityClusterPair.first,
                                     entityClusterPair.second, entityType));
@@ -640,6 +643,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
     }
 
     private boolean isEntityRunning(Entity entity) throws FalconException {
+        authenticateUser();
         AbstractWorkflowEngine workflowEngine = WorkflowEngineFactory.getWorkflowEngine();
         return workflowEngine.isActive(entity) && !workflowEngine.isSuspended(entity)
                 && !workflowEngine.isCompleted(entity);
