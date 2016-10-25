@@ -154,7 +154,7 @@ public class EntitySLAAlertServiceTest extends AbstractTestBase {
         org.apache.falcon.entity.v0.process.Cluster testCluster = new org.apache.falcon.entity.v0.process.Cluster();
         testCluster.setName("test-cluster");
         cluster.getClusters().add(testCluster);
-        Process process =  new Process();
+        Process process = new Process();
         process.setName("test-process");
         process.setClusters(cluster);
         processCluster.setColo("test-cluster");
@@ -169,7 +169,6 @@ public class EntitySLAAlertServiceTest extends AbstractTestBase {
         Frequency processFrequency = new Frequency("1", Frequency.TimeUnit.minutes);
         sla.setShouldEndIn(processFrequency);
         process.setSla(sla);
-
 
         Thread.sleep(10*1000);
         Assert.assertTrue(monitoringJdbcStateStore.getEntityAlertInstance("test-process", "test-cluster", dateOne,

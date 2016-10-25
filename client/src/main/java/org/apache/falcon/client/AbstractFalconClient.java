@@ -27,6 +27,7 @@ import org.apache.falcon.resource.FeedInstanceResult;
 import org.apache.falcon.resource.InstanceDependencyResult;
 import org.apache.falcon.resource.InstancesResult;
 import org.apache.falcon.resource.InstancesSummaryResult;
+import org.apache.falcon.resource.SchedulableEntityInstanceResult;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -186,6 +187,17 @@ public abstract class AbstractFalconClient {
      */
     public abstract APIResult submitAndSchedule(String entityType, String filePath, Boolean skipDryRun, String doAsUser,
                                        String properties) throws FalconCLIException;
+
+    /**
+     * @param entityName name of the entity.
+     * @param entityType feed or process.
+     * @param startTime start range from where the sla is to be tracked.
+     * @param endTime End range till where the sla is to be tracked.
+     * @param colo colo in which the entity's sla is to be tracked.
+     */
+    public abstract SchedulableEntityInstanceResult getEntitySlaSummary(String entityType, String entityName,
+                                                                        String startTime, String endTime,
+                                                                        String colo) throws FalconCLIException;
 
     /**
      *

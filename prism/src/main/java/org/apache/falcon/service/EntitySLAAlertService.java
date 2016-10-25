@@ -123,9 +123,9 @@ public final class EntitySLAAlertService implements FalconService, EntitySLAList
 
                 org.apache.falcon.entity.v0.cluster.Cluster cluster = ClusterHelper.getCluster(clusterName);
 
-                Set<SchedulableEntityInstance> schedulableEntityInstances= EntitySLAMonitoringService.get().
-                        getEntitySLAMissPendingAlerts(entityName, cluster.getName(), nominalTime, nominalTime
-                                , entityType);
+                Set<SchedulableEntityInstance> schedulableEntityInstances = EntitySLAMonitoringService.get().
+                        getEntitySLAMissPendingAlerts(entityName, cluster.getName(), nominalTime, nominalTime,
+                                entityType);
                 if (schedulableEntityInstances.isEmpty()){
                     store.deleteEntityAlertInstance(entityName, cluster.getName(), nominalTime,
                             entityType);
@@ -144,7 +144,7 @@ public final class EntitySLAAlertService implements FalconService, EntitySLAList
                 } else if (schedulableEntityInstance.getTags().contains(EntitySLAMonitoringService.get().TAG_CRITICAL)){
                     if (entityType.equalsIgnoreCase(EntityType.PROCESS.name())){
                         store.putSLAAlertInstance(entityName, clusterName, entityType,
-                                nominalTime, true, false);
+                                nominalTime, true, true);
                     }
                     store.updateSLAAlertInstance(entityName, clusterName, nominalTime, entityType);
                     LOG.info("Entity :{} EntityType : {} Cluster: {} Nominal Time: {} missed SLAHigh", entityName,
@@ -163,7 +163,7 @@ public final class EntitySLAAlertService implements FalconService, EntitySLAList
                               ) throws FalconException {
         for (EntitySLAListener listener : listeners) {
             listener.highSLAMissed(entityName, clusterName, entityType, nominalTime);
-            store.deleteEntityAlertInstance(entityName, clusterName, nominalTime, entityType.name());
         }
+        store.deleteEntityAlertInstance(entityName, clusterName, nominalTime, entityType.name());
     }
 }

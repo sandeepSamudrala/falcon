@@ -484,8 +484,10 @@ public class FalconClient extends AbstractFalconClient {
 
     //SUSPEND CHECKSTYLE CHECK ParameterNumberCheck
 
-    public SchedulableEntityInstanceResult getFeedSlaMissPendingAlerts(String entityType, String entityName,
-                                           String startTime, String endTime, String colo) throws FalconCLIException {
+    @Override
+    public SchedulableEntityInstanceResult getEntitySlaSummary(String entityType, String entityName,
+                                                               String startTime, String endTime,
+                                                               String colo) throws FalconCLIException {
         ClientResponse clientResponse  = new ResourceBuilder().path(Entities.SLA.path, entityType)
             .addQueryParam(START, startTime).addQueryParam(COLO, colo).addQueryParam(END, endTime)
             .addQueryParam(ENTITY_NAME, entityName).call(Entities.SLA);
@@ -500,7 +502,7 @@ public class FalconClient extends AbstractFalconClient {
     }
 
     @Override
-    public EntityList getEntityList(String entityType, String fields, String nameSubsequence, String tagKeywords,
+    public EntityList getEntityList(String entityType, String fields, String nameSubSequence, String tagKeywords,
                                     String filterBy, String filterTags, String orderBy, String sortOrder,
                                     Integer offset, Integer numResults, String doAsUser) throws FalconCLIException {
         Entities operation = Entities.LIST;
@@ -508,7 +510,7 @@ public class FalconClient extends AbstractFalconClient {
             .addQueryParam(DO_AS_OPT, doAsUser).addQueryParam(NUM_RESULTS, numResults)
             .addQueryParam(OFFSET, offset).addQueryParam(SORT_ORDER, sortOrder)
             .addQueryParam(ORDER_BY, orderBy).addQueryParam(FILTER_BY, filterBy)
-            .addQueryParam(FIELDS, fields).addQueryParam(NAME_SUBSEQUENCE, nameSubsequence)
+            .addQueryParam(FIELDS, fields).addQueryParam(NAME_SUBSEQUENCE, nameSubSequence)
             .addQueryParam(TAG_KEYWORDS, tagKeywords).addQueryParam(FILTER_TAGS, filterTags)
             .call(operation);
 
