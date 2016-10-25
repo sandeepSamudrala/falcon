@@ -30,6 +30,8 @@ public class MetricInfo {
         this.cluster = clusterName;
     }
 
+    public MetricInfo(){}
+
     public String getNominalTime() {
         return nominalTime;
     }
