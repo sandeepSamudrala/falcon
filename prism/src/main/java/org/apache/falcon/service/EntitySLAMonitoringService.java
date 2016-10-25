@@ -125,7 +125,6 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                 }
             }
         } else if (entity.getEntityType() == EntityType.PROCESS) {
-            AbstractWorkflowEngine workflowEngine = WorkflowEngineFactory.getWorkflowEngine();
             Process process = (Process) entity;
             if (process.getSla() != null || checkProcessClusterSLA(process)) {
                 for (String cluster : clustersDefined) {
@@ -135,7 +134,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                             MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
                                     EntityType.PROCESS.toString(), new Date(now().getTime() + MINUTE_DELAY));
                         } else {
-                            if (workflowEngine.isActive(entity)) {
+                            if (isEntityRunning(entity)) {
                                 MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
                                         EntityType.PROCESS.toString(), new Date(now().getTime() + MINUTE_DELAY));
                                 List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, cluster,
@@ -354,12 +353,11 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
     void addPendingEntityInstances(Date endTime) throws FalconException {
         Set<String> currentClusters = DeploymentUtil.getCurrentClusters();
         List<MonitoredEntityBean> entityBeanList = MONITORING_JDBC_STATE_STORE.getAllMonitoredEntities();
-        AbstractWorkflowEngine workflowEngine = WorkflowEngineFactory.getWorkflowEngine();
         for(MonitoredEntityBean monitoredEntityBean : entityBeanList) {
             String entityName = monitoredEntityBean.getEntityName();
             String entityType = monitoredEntityBean.getEntityType();
             if (EntityType.FEED.name().equals(entityType)
-                    || !workflowEngine.isSuspended(EntityUtil.getEntity(entityType, entityName))) {
+                    || isEntityRunning(EntityUtil.getEntity(entityType, entityName))) {
                 Date lastMonitoredInstanceTime = monitoredEntityBean.getLastMonitoredTime();
                 Date newCheckPointTime = endTime != null ? endTime : now();
                 Entity entity = EntityUtil.getEntity(entityType, entityName);
@@ -639,5 +637,11 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         if (!CurrentUser.isAuthenticated()) {
             CurrentUser.authenticate(System.getProperty("user.name"));
         }
+    }
+
+    private boolean isEntityRunning(Entity entity) throws FalconException {
+        AbstractWorkflowEngine workflowEngine = WorkflowEngineFactory.getWorkflowEngine();
+        return workflowEngine.isActive(entity) && !workflowEngine.isSuspended(entity)
+                && !workflowEngine.isCompleted(entity);
     }
 }
