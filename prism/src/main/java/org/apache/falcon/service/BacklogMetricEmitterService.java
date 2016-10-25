@@ -102,7 +102,7 @@ public final class BacklogMetricEmitterService implements FalconService,
 
     @Override
     public void onAdd(Entity entity) throws FalconException{
-        //DO Nothing
+        addToBacklog(entity);
     }
 
     @Override
@@ -147,12 +147,25 @@ public final class BacklogMetricEmitterService implements FalconService,
             for(Cluster cluster : process.getClusters().getClusters()){
                 dropMetric(cluster.getName(), process);
             }
+        }else{
+              addToBacklog(newEntity);
         }
     }
 
     @Override
-    public void onReload(Entity entity) throws FalconException{
-        // Do Nothing
+    public void onReload(Entity entity) throws FalconException {
+        addToBacklog(entity);
+    }
+
+    public void addToBacklog(Entity entity) {
+        if (entity.getEntityType() != EntityType.PROCESS) {
+            return;
+        }
+        Process process = (Process) entity;
+        if (process.getSla() == null) {
+            return;
+        }
+        entityBacklogs.putIfAbsent(entity, Collections.synchronizedList(new ArrayList<MetricInfo>()));
     }
 
     @Override
