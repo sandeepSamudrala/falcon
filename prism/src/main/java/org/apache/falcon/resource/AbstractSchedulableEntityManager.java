@@ -173,7 +173,7 @@ public abstract class AbstractSchedulableEntityManager extends AbstractInstanceM
             Date start = EntityUtil.parseDateUTC(startStr);
             Date end = (endStr == null) ? new Date() : EntityUtil.parseDateUTC(endStr);
             if (StringUtils.isBlank(entityName)) {
-                instances.addAll(EntitySLAMonitoringService.get().getEntitySLAMissPendingAlerts(start, end));
+                instances = EntitySLAMonitoringService.get().getEntitySLAMissPendingAlerts(start, end);
             } else {
                 String status = getStatusString(EntityUtil.getEntity(entityType, entityName));
                 if (status.equals(EntityStatus.RUNNING.name())) {
