@@ -147,7 +147,7 @@ public final class BacklogMetricEmitterService implements FalconService,
             for(Cluster cluster : process.getClusters().getClusters()){
                 dropMetric(cluster.getName(), process);
             }
-        }else{
+        } else {
               addToBacklog(newEntity);
         }
     }
