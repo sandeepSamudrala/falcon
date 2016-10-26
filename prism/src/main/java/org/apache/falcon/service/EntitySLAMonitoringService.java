@@ -388,11 +388,12 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
      * Checks the availability of all the pendingInstances and removes the ones which have become available.
      */
     private void checkPendingInstanceAvailability() throws FalconException {
-        if (MONITORING_JDBC_STATE_STORE.getAllPendingInstances() == null){
+        List<PendingInstanceBean> pendingInstanceBeans = MONITORING_JDBC_STATE_STORE.getAllPendingInstances();
+        if (pendingInstanceBeans.isEmpty()){
             LOG.info("No pending instances to be checked");
             return;
         }
-        for(PendingInstanceBean pendingInstanceBean : MONITORING_JDBC_STATE_STORE.getAllPendingInstances()){
+        for(PendingInstanceBean pendingInstanceBean : pendingInstanceBeans){
             for (Date instanceTime : MONITORING_JDBC_STATE_STORE.getNominalInstances(
                     pendingInstanceBean.getEntityName(), pendingInstanceBean.getClusterName(),
                     pendingInstanceBean.getEntityType())) {
