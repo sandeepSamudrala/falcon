@@ -426,7 +426,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                 AbstractWorkflowEngine wfEngine = WorkflowEngineFactory.getWorkflowEngine();
 
                 InstancesResult instancesResult = wfEngine.getStatus(entity, nominalTime,
-                        new Date(nominalTime.getTime() + 200), PROCESS_LIFE_CYCLE, null);
+                        new Date(nominalTime.getTime() + 200), PROCESS_LIFE_CYCLE, false);
                 if (instancesResult.getInstances().length > 0) {
                     if (instancesResult.getInstances()[0].status.equals(InstancesResult.WorkflowStatus.SUCCEEDED)){
                         LOG.trace("Entity instance(Process:{}, cluster:{}, instanceTime:{}) is available.",
