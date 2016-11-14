@@ -143,17 +143,8 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
                             MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
                                     EntityType.PROCESS.toString(), now());
                         } else {
-                            if (isEntityRunning(entity)) {
-                                MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
-                                        EntityType.PROCESS.toString(), new Date(now().getTime() + MINUTE_DELAY));
-                                List<Date> instances = EntityUtil.getEntityInstanceTimesInBetween(entity, cluster,
-                                        getStartTime(entity, cluster), now());
-                                addPendingInstances(entity.getEntityType().name().toLowerCase(), entity, cluster,
-                                        instances);
-                            } else {
-                                MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
+                            MONITORING_JDBC_STATE_STORE.putMonitoredEntity(process.getName(),
                                         EntityType.PROCESS.toString(), getStartTime(entity, cluster));
-                            }
                         }
                     }
                 }
