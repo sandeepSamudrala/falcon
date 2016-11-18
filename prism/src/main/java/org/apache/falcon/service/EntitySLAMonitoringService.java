@@ -352,7 +352,7 @@ public final class EntitySLAMonitoringService implements ConfigurationChangeList
         for(MonitoredEntityBean monitoredEntityBean : entityBeanList) {
             String entityName = monitoredEntityBean.getEntityName();
             String entityType = monitoredEntityBean.getEntityType();
-            if (EntityType.FEED.name().equals(entityType)
+            if (EntityType.FEED.name().equalsIgnoreCase(entityType)
                     || isEntityRunning(EntityUtil.getEntity(entityType, entityName))) {
                 Date lastMonitoredInstanceTime = monitoredEntityBean.getLastMonitoredTime();
                 Date newCheckPointTime = checkPointTime;
