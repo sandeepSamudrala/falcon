@@ -21,12 +21,12 @@ public class ColoMigration {
     public static void main(String[] args) {
         if(args.length != 3){
             System.out.println("Specify correct arguments");
-            return;
+            //return;
         }
-        String entitytype = args[0].trim().toLowerCase();
-        String oldEntities = args[1];
-        String outpath = args[2];
-        changeEntities(entitytype, oldEntities, outpath);
+        //String entitytype = args[0].trim().toLowerCase();
+        //String oldEntities = args[1];
+        //String outpath = args[2];
+        changeEntities("feed", "/Users/pracheer.agarwal/oldProcess", "/Users/pracheer.agarwal/oldProcess1");
     }
 
     public static void changeEntities(String entityType, String oldPath, String newPath) {
