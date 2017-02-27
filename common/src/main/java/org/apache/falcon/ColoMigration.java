@@ -34,7 +34,7 @@ public class ColoMigration {
         String oldEntities = args[1];
         String outpath = args[2];
         changeEntities(entitytype, oldEntities, outpath);
-        //changeEntities("process", "/home/pracheer/work/entities", "file:///home/pracheer/work/entities_n");
+        //changeEntities("feed", "/home/pracheer/work/feeds", "file:///home/pracheer/work/entities_f");
 
     }
 
@@ -72,7 +72,7 @@ public class ColoMigration {
                                     }
                                     Validity pek1Validity = new Validity();
                                     Date currentDate = new Date();
-                                    currentDate.setTime(1487894400000L);
+                                    currentDate.setTime(1488326400000L);
                                     pek1Validity.setStart(currentDate);
                                     pek1Validity.setEnd(cluster.getValidity().getEnd());
                                     pek1_cluster.setValidity(pek1Validity);
@@ -115,7 +115,7 @@ public class ColoMigration {
 
                                     org.apache.falcon.entity.v0.feed.Validity pek1Validity = new org.apache.falcon.entity.v0.feed.Validity();
                                     Date currentDate = new Date();
-                                    currentDate.setTime(1487894400);
+                                    currentDate.setTime(1488326400000L);
                                     pek1Validity.setStart(currentDate);
                                     pek1Validity.setEnd(cluster.getValidity().getEnd());
                                     pek1_feed_cluster.setValidity(pek1Validity);
