@@ -1,15 +1,5 @@
 package org.apache.falcon;
 
-import org.apache.commons.codec.CharEncoding;
-import org.apache.falcon.entity.parser.EntityParser;
-import org.apache.falcon.entity.parser.EntityParserFactory;
-import org.apache.falcon.entity.v0.EntityType;
-import org.apache.falcon.entity.v0.process.Cluster;
-import org.apache.falcon.entity.v0.process.Clusters;
-import org.apache.falcon.entity.v0.process.Validity;
-import org.apache.hadoop.fs.Path;
-
-import javax.xml.bind.JAXBException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -17,131 +7,137 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
+import javax.xml.bind.JAXBException;
+
+import org.apache.falcon.entity.parser.EntityParser;
+import org.apache.falcon.entity.parser.EntityParserFactory;
+import org.apache.falcon.entity.v0.EntityType;
+import org.apache.falcon.entity.v0.feed.Feed;
+import org.apache.falcon.entity.v0.process.Process;
+import org.apache.hadoop.fs.Path;
 
 public class ColoMigration {
-    private static final String TMP_BASE_DIR = String.format("file://%s", System.getProperty("java.io.tmpdir"));
-    private static final String UTF_8 = CharEncoding.UTF_8;
-    public static void main(String[] args) throws Exception{
-        if(args.length != 3){
+    private static final String TMP_BASE_DIR = String.format("file://%s", new Object[]{System.getProperty("java.io.tmpdir")});
+
+    public static void main(String[] args)
+            throws Exception {
+        if (args.length != 3) {
             System.out.println("Specify correct arguments");
-            //return;
         }
         String entitytype = args[0].trim().toLowerCase();
         String oldEntities = args[1];
         String outpath = args[2];
         changeEntities(entitytype, oldEntities, outpath);
-        //changeEntities("feed", "/home/pracheer/work/feeds", "file:///home/pracheer/work/entities_f");
-
     }
 
-    public static void changeEntities(String entityType, String oldPath, String newPath) throws Exception {
+    public static void changeEntities(String entityType, String oldPath, String newPath)
+            throws Exception {
         File folder = new File(oldPath);
         File[] listOfFiles = folder.listFiles();
-        String stagePath = TMP_BASE_DIR + File.separator + newPath + File.separator + System.currentTimeMillis()/1000;
+        String stagePath = TMP_BASE_DIR + File.separator + newPath + File.separator + System.currentTimeMillis() / 1000L;
         System.out.println("Number of files: " + listOfFiles.length);
-
         for (File file : listOfFiles) {
-
             if (file.isFile()) {
                 System.out.println(file.getName());
                 EntityType type = EntityType.getEnum(entityType);
                 EntityParser<?> entityParser = EntityParserFactory.getParser(type);
                 try {
                     InputStream xmlStream = new FileInputStream(file);
-                    //PrintWriter out = new PrintWriter(file.getName());
-                    File entityFile;
+                    org.apache.falcon.entity.v0.process.Validity pek1Validity;
                     OutputStream out;
                     switch (type) {
                         case PROCESS:
-                            org.apache.falcon.entity.v0.process.Process process =
-                                    (org.apache.falcon.entity.v0.process.Process) entityParser.parse(xmlStream);
+                            Process process = (Process) entityParser.parse(xmlStream);
+                            org.apache.falcon.entity.v0.process.Clusters entityClusters = process.getClusters();
+                            List<org.apache.falcon.entity.v0.process.Cluster> clusters = entityClusters.getClusters();
 
-                            Clusters entityClusters = process.getClusters();
-                            List<Cluster> clusters = entityClusters.getClusters();
+                            List<org.apache.falcon.entity.v0.process.Cluster> processClusterToRemove = new ArrayList<>();
+                            for (org.apache.falcon.entity.v0.process.Cluster cluster : clusters) {
+                                if (cluster.getName().equals("hkg1-opal") || cluster.getName().equals("uj1-topaz") || cluster.getName().equals("wc1-ssp")) {
+                                    processClusterToRemove.add(cluster);
+                                }
+                            }
+                            clusters.removeAll(processClusterToRemove);
 
-                            for (Cluster cluster : clusters) {
-                                if (cluster.getName().equals("hkg1-opal")) {
-                                    Cluster pek1_cluster = new Cluster();
-                                    pek1_cluster.setName("pek1-pyrite");
-                                    if(cluster.getSla() != null) {
-                                        pek1_cluster.setSla(cluster.getSla());
-                                    }
-                                    Validity pek1Validity = new Validity();
-                                    Date currentDate = new Date();
-                                    currentDate.setTime(1488326400000L);
-                                    pek1Validity.setStart(currentDate);
-                                    pek1Validity.setEnd(cluster.getValidity().getEnd());
-                                    pek1_cluster.setValidity(pek1Validity);
-                                    clusters.add(pek1_cluster);
-                                    break;
+                            // filter on start date for processes
+                            boolean filter = false;
+                            List<String> processClusterNames = new ArrayList<>();
+                            for (org.apache.falcon.entity.v0.process.Cluster cluster : clusters) {
+                                Date clusterDate = cluster.getValidity().getEnd();
+                                processClusterNames.add(cluster.getName());
+                                if (clusterDate.getTime() > System.currentTimeMillis() ) {
+                                    filter = true;
                                 }
                             }
 
-                            entityFile = new File(new Path(newPath + File.separator + file.getName()).toUri().toURL().getPath());
-                            System.out.println("File path : " + entityFile.getAbsolutePath());
-                            if (!entityFile.createNewFile()) {
-                                System.out.println(("Not able to stage the entities in the tmp path"));
-                                return;
+                            if(processClusterNames.size() != 0) {
+                                processClusterNames.add("prism");
                             }
 
-                            System.out.println(process.toString());
-                            out = new FileOutputStream(entityFile);
-                            type.getMarshaller().marshal(process, out);
-                            out.close();
+                            if (filter) {
+                                for (String colo : processClusterNames) {
+                                    File entityFile = new File(new Path(newPath + File.separator + colo + File.separator +
+                                            file.getName()).toUri().toURL().getPath());
+                                    entityFile.getParentFile().mkdirs();
+                                    System.out.println("File path : " + entityFile.getAbsolutePath());
+                                    if (!entityFile.createNewFile()) {
+                                        System.out.println("Not able to stage the entities in the tmp path");
+                                        return;
+                                    }
+                                    out = new FileOutputStream(entityFile);
+                                    type.getMarshaller().marshal(process, out);
+                                    out.close();
+                                }
+                            }
+
                             break;
 
+
                         case FEED:
-                            org.apache.falcon.entity.v0.feed.Feed feed =
-                                    (org.apache.falcon.entity.v0.feed.Feed) entityParser.parse(xmlStream);
+                            Feed feed = (Feed) entityParser.parse(xmlStream);
 
                             org.apache.falcon.entity.v0.feed.Clusters feedClusters = feed.getClusters();
                             List<org.apache.falcon.entity.v0.feed.Cluster> feed_clusters = feedClusters.getClusters();
 
+                            List<org.apache.falcon.entity.v0.feed.Cluster> feedClusterToRemove = new ArrayList<>();
                             for (org.apache.falcon.entity.v0.feed.Cluster cluster : feed_clusters) {
-                                if (cluster.getName().equals("hkg1-opal")) {
-                                    org.apache.falcon.entity.v0.feed.Cluster pek1_feed_cluster = new org.apache.falcon.entity.v0.feed.Cluster();
-                                    pek1_feed_cluster.setName("pek1-pyrite");
-                                    pek1_feed_cluster.setSla(cluster.getSla());
-                                    pek1_feed_cluster.setDelay(cluster.getDelay());
-                                    pek1_feed_cluster.setLifecycle(cluster.getLifecycle());
-                                    pek1_feed_cluster.setLocations(cluster.getLocations());
-                                    pek1_feed_cluster.setPartition(cluster.getPartition());
-                                    pek1_feed_cluster.setRetention(cluster.getRetention());
-                                    pek1_feed_cluster.setType(cluster.getType());
-
-                                    org.apache.falcon.entity.v0.feed.Validity pek1Validity = new org.apache.falcon.entity.v0.feed.Validity();
-                                    Date currentDate = new Date();
-                                    currentDate.setTime(1488326400000L);
-                                    pek1Validity.setStart(currentDate);
-                                    pek1Validity.setEnd(cluster.getValidity().getEnd());
-                                    pek1_feed_cluster.setValidity(pek1Validity);
-                                    feed_clusters.add(pek1_feed_cluster);
-                                    break;
+                                if (cluster.getName().equals("hkg1-opal") || cluster.getName().equals("uj1-topaz")
+                                        || cluster.getName().equals("wc1-ssp") || cluster.getName().equals("hkg1-opal-secondary")) {
+                                    feedClusterToRemove.add(cluster);
                                 }
                             }
-                            entityFile = new File(new Path(newPath + File.separator + file.getName()).toUri().toURL().getPath());
-                            System.out.println("File path : " + entityFile.getAbsolutePath());
-                            if (!entityFile.createNewFile()) {
-                                System.out.println(("Not able to stage the entities in the tmp path"));
-                                return;
+                            feed_clusters.removeAll(feedClusterToRemove);
+
+                            List<String> feedClusterNames = new ArrayList<>();
+                            for (org.apache.falcon.entity.v0.feed.Cluster cluster : feed_clusters) {
+                                feedClusterNames.add(cluster.getName());
+                            }
+                            if(feedClusterNames.size() != 0) {
+                                feedClusterNames.add("prism");
                             }
 
-                            System.out.println(feed.toString());
-                            out = new FileOutputStream(entityFile);
-                            type.getMarshaller().marshal(feed, out);
-                            out.close();
-                            break;
-
+                            for (String colo : feedClusterNames) {
+                                File entityFile = new File(new Path(newPath + File.separator + colo + File.separator
+                                        + file.getName()).toUri().toURL().getPath());
+                                entityFile.getParentFile().mkdirs();
+                                System.out.println("File path : " + entityFile.getAbsolutePath());
+                                if (!entityFile.createNewFile()) {
+                                    System.out.println("Not able to stage the entities in the tmp path");
+                                    return;
+                                }
+                                out = new FileOutputStream(entityFile);
+                                type.getMarshaller().marshal(feed, out);
+                                out.close();
+                            }
                     }
-
                 } catch (FileNotFoundException e) {
                     System.out.println(e.toString());
                 } catch (FalconException e) {
-                    System.out.println(e .toString());
+                    System.out.println(e.toString());
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (JAXBException e) {
