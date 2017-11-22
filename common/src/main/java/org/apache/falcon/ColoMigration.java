@@ -34,8 +34,7 @@ public class ColoMigration {
         changeEntities(entitytype, oldEntities, outpath);
     }
 
-    public static void changeEntities(String entityType, String oldPath, String newPath)
-            throws Exception {
+    public static void changeEntities(String entityType, String oldPath, String newPath) {
         File folder = new File(oldPath);
         File[] listOfFiles = folder.listFiles();
         String stagePath = TMP_BASE_DIR + File.separator + newPath + File.separator + System.currentTimeMillis() / 1000L;
@@ -57,11 +56,12 @@ public class ColoMigration {
 
                             List<org.apache.falcon.entity.v0.process.Cluster> processClusterToRemove = new ArrayList<>();
                             for (org.apache.falcon.entity.v0.process.Cluster cluster : clusters) {
-                                if (cluster.getName().equals("hkg1-opal") || cluster.getName().equals("uj1-topaz") || cluster.getName().equals("wc1-ssp")) {
+                                if (cluster.getName().equals("hkg1-opal") || cluster.getName().equals("uj1-topaz") || cluster.getName().equals("wc1-ssp")
+                                        || cluster.getName().equals("uh1-krypton") || cluster.getName().equals("uh1-gold")) {
                                     processClusterToRemove.add(cluster);
                                 }
                             }
-                            clusters.removeAll(processClusterToRemove);
+//                            clusters.removeAll(processClusterToRemove);
 
                             // filter on start date for processes
                             boolean filter = false;
@@ -76,6 +76,8 @@ public class ColoMigration {
 
                             if(processClusterNames.size() != 0) {
                                 processClusterNames.add("prism");
+                            } else {
+                                System.out.println("process to delete: " + file.getAbsolutePath());
                             }
 
                             if (filter) {
@@ -106,9 +108,16 @@ public class ColoMigration {
                             List<org.apache.falcon.entity.v0.feed.Cluster> feedClusterToRemove = new ArrayList<>();
                             for (org.apache.falcon.entity.v0.feed.Cluster cluster : feed_clusters) {
                                 if (cluster.getName().equals("hkg1-opal") || cluster.getName().equals("uj1-topaz")
-                                        || cluster.getName().equals("wc1-ssp") || cluster.getName().equals("hkg1-opal-secondary")) {
+                                        || cluster.getName().equals("wc1-ssp") || cluster.getName().equals("uh1-krypton")
+                                        || cluster.getName().equals("hkg1-opal-secondary") || cluster.getName().equals("uh1-gold")) {
                                     feedClusterToRemove.add(cluster);
                                 }
+
+                                /*if(cluster.getName().equals("uh1-krypton-secondary")) {
+                                    cluster.setName("dfw1-onyx-secondary");
+                                    Date date = new Date(1501200000L);
+                                    cluster.getValidity().setStart(date);
+                                }*/
                             }
                             feed_clusters.removeAll(feedClusterToRemove);
 
@@ -118,8 +127,9 @@ public class ColoMigration {
                             }
                             if(feedClusterNames.size() != 0) {
                                 feedClusterNames.add("prism");
+                            } else {
+                                System.out.println("feed to delete: " + file.getAbsolutePath());
                             }
-
                             for (String colo : feedClusterNames) {
                                 File entityFile = new File(new Path(newPath + File.separator + colo + File.separator
                                         + file.getName()).toUri().toURL().getPath());
