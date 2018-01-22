@@ -175,29 +175,29 @@ public class ColoMigration {
 
 //                                feed.getClusters().getClusters().add(feedClusterToAdd);
 //
-                            List<String> feedClusterNames = new ArrayList<>();
-                            for (org.apache.falcon.entity.v0.feed.Cluster cluster : feed_clusters) {
-                                feedClusterNames.add(cluster.getName());
-                            }
-                            if(feedClusterNames.size() != 0) {
-                                feedClusterNames.add("prism");
-                            } else {
-                                System.out.println("Feed to delete: " + file.getAbsolutePath());
-                            }
-                            for (String colo : feedClusterNames) {
-                                File entityFile = new File(new Path(newPath + File.separator + colo + File.separator
-                                    + file.getName()).toUri().toURL().getPath());
-                                entityFile.getParentFile().mkdirs();
-                                System.out.println("File path : " + entityFile.getAbsolutePath());
-                                if (!entityFile.createNewFile()) {
-                                    System.out.println("Not able to stage the entities in the tmp path");
-                                    return;
+                                List<String> feedClusterNames = new ArrayList<>();
+                                for (org.apache.falcon.entity.v0.feed.Cluster cluster : feed_clusters) {
+                                    feedClusterNames.add(cluster.getName());
                                 }
-                                out = new FileOutputStream(entityFile);
-                                type.getMarshaller().marshal(feed, out);
-                                out.close();
-                            }
-                    }
+                                if(feedClusterNames.size() != 0) {
+                                    feedClusterNames.add("prism");
+                                } else {
+                                    System.out.println("Feed to delete: " + file.getAbsolutePath());
+                                }
+                                for (String colo : feedClusterNames) {
+                                    File entityFile = new File(new Path(newPath + File.separator + colo + File.separator
+                                        + file.getName()).toUri().toURL().getPath());
+                                    entityFile.getParentFile().mkdirs();
+                                    System.out.println("File path : " + entityFile.getAbsolutePath());
+                                    if (!entityFile.createNewFile()) {
+                                        System.out.println("Not able to stage the entities in the tmp path");
+                                        return;
+                                    }
+                                    out = new FileOutputStream(entityFile);
+                                    type.getMarshaller().marshal(feed, out);
+                                    out.close();
+                                }
+                        }
                 } catch (FileNotFoundException | FalconException e) {
                     System.out.println(e.toString());
                 } catch (IOException e) {
