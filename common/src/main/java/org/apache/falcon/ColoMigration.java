@@ -25,7 +25,7 @@ public class ColoMigration {
     private static final String TMP_BASE_DIR = String.format("file://%s", new Object[]{System.getProperty("java.io.tmpdir")});
 
     public static void main(String[] args)
-            throws Exception {
+        throws Exception {
         if (args.length != 5) {
             System.out.println("Specify correct arguments");
         }
@@ -57,27 +57,28 @@ public class ColoMigration {
                             org.apache.falcon.entity.v0.process.Clusters entityClusters = process.getClusters();
                             List<org.apache.falcon.entity.v0.process.Cluster> clusters = entityClusters.getClusters();
 
-                            org.apache.falcon.entity.v0.process.Validity validity = new org.apache.falcon.entity.v0.process.Validity();
-
-                            Date startDate= simpleDateFormat.parse("2017-12-22T00:00:00Z");
-                            Date endDate = simpleDateFormat.parse("2099-12-20T00:00:00Z");
-                            validity.setStart(startDate);
-                            validity.setEnd(endDate);
-
-
-                            org.apache.falcon.entity.v0.process.Cluster processClusterToAdd = new org.apache.falcon.entity.v0.process.Cluster();
+//                            org.apache.falcon.entity.v0.process.Validity validity = new org.apache.falcon.entity.v0.process.Validity();
+//
+//                            Date startDate= simpleDateFormat.parse("2017-12-22T00:00:00Z");
+//                            Date endDate = simpleDateFormat.parse("2099-12-20T00:00:00Z");
+//                            validity.setStart(startDate);
+//                            validity.setEnd(endDate);
+//
+//
+//                            org.apache.falcon.entity.v0.process.Cluster processClusterToAdd = new org.apache.falcon.entity.v0.process.Cluster();
 
                             for (org.apache.falcon.entity.v0.process.Cluster cluster : clusters) {
                                 if (cluster.getName().equals("lhr1-emerald")) {
-                                    processClusterToAdd.setValidity(validity);
-                                    processClusterToAdd.setSla(cluster.getSla());
-                                    processClusterToAdd.setName(newClusterName);
+                                    clusters.remove(cluster);
+//                                    processClusterToAdd.setValidity(validity);
+//                                    processClusterToAdd.setSla(cluster.getSla());
+//                                    processClusterToAdd.setName(newClusterName);
                                 }
                             }
 
 
-                            process.getClusters().getClusters().add(processClusterToAdd);
-
+//                            process.getClusters().getClusters().add(processClusterToAdd);
+//
                             // filter on start date for processes
                             boolean filter = false;
                             List<String> processClusterNames = new ArrayList<>();
@@ -98,7 +99,7 @@ public class ColoMigration {
                             if (filter) {
                                 for (String colo : processClusterNames) {
                                     File entityFile = new File(new Path(newPath + File.separator + colo + File.separator +
-                                            file.getName()).toUri().toURL().getPath());
+                                        file.getName()).toUri().toURL().getPath());
                                     entityFile.getParentFile().mkdirs();
                                     System.out.println("File path : " + entityFile.getAbsolutePath());
                                     if (!entityFile.createNewFile()) {
@@ -120,63 +121,64 @@ public class ColoMigration {
                             org.apache.falcon.entity.v0.feed.Clusters feedClusters = feed.getClusters();
                             List<org.apache.falcon.entity.v0.feed.Cluster> feed_clusters = feedClusters.getClusters();
 
-                            startDate= simpleDateFormat.parse("2017-11-20T00:00:00Z");
-                            endDate = simpleDateFormat.parse("2099-11-20T00:00:00Z");
-                            org.apache.falcon.entity.v0.feed.Validity feedValidity = new org.apache.falcon.entity.v0.feed.Validity();
+//                            startDate= simpleDateFormat.parse("2017-11-20T00:00:00Z");
+//                            endDate = simpleDateFormat.parse("2099-11-20T00:00:00Z");
+//                            org.apache.falcon.entity.v0.feed.Validity feedValidity = new org.apache.falcon.entity.v0.feed.Validity();
 
-                            feedValidity.setStart(startDate);
-                            feedValidity.setEnd(endDate);
+//                            feedValidity.setStart(startDate);
+//                            feedValidity.setEnd(endDate);
 
-                            Partition newPartition = new Partition();
-                            newPartition.setName(newColoName);
+//                            Partition newPartition = new Partition();
+//                            newPartition.setName(newColoName);
 
-                            boolean ignoreFeed = false;
-                            org.apache.falcon.entity.v0.feed.Cluster feedClusterToAdd = new Cluster();
+//                            boolean ignoreFeed = false;
+//                            org.apache.falcon.entity.v0.feed.Cluster feedClusterToAdd = new Cluster();
+//                            for (org.apache.falcon.entity.v0.feed.Cluster cluster : feed_clusters) {
+//                                if (cluster.getName().equals("ams1-azurite")) {
+//                                    ignoreFeed = true;
+//                                }
+//                            }
+
+//                            if (!ignoreFeed) {
                             for (org.apache.falcon.entity.v0.feed.Cluster cluster : feed_clusters) {
-                                if (cluster.getName().equals("ams1-azurite")) {
-                                    ignoreFeed = true;
+                                if (cluster.getName().equals("lhr1-emerald")) {
+                                    feed_clusters.remove(cluster);
                                 }
+//                                        feedClusterToAdd.setType(cluster.getType());
+//                                        feedClusterToAdd.setValidity(feedValidity);
+//                                        feedClusterToAdd.setRetention(cluster.getRetention());
+//                                        if (cluster.getPartition() != null && cluster.getPartition().equals("lhr1")) {
+//                                            feedClusterToAdd.setPartition(newColoName);
+//                                        }
+//                                        feedClusterToAdd.setLifecycle(cluster.getLifecycle());
+//                                        feedClusterToAdd.setDelay(cluster.getDelay());
+//                                        feedClusterToAdd.setSla(cluster.getSla());
+//                                        feedClusterToAdd.setName(newClusterName);
+//                                        feedClusterToAdd.setPartition(cluster.getPartition());
+//
+//                                        if (cluster.getLocations() != null && cluster.getLocations().getLocations() != null) {
+//                                            String oldLocation = cluster.getLocations().getLocations().get(0).getPath();
+//                                            Locations feedLocations = new Locations();
+//                                            Location newLocation = new Location();
+//                                            String newLocationPath = oldLocation.replace("lhr1", newColoName)
+//                                                    .replace("Lhr1", "Ams1")
+//                                                    .replace("LHR1", "AMS1");
+//                                            newLocation.setPath(newLocationPath);
+//                                            newLocation.setType(cluster.getLocations().getLocations().get(0).getType());
+//                                            feedLocations.getLocations().add(newLocation);
+//                                            feedClusterToAdd.setLocations(feedLocations);
+//                                        }
+//                                    }
                             }
 
-                            if (!ignoreFeed) {
-                                for (org.apache.falcon.entity.v0.feed.Cluster cluster : feed_clusters) {
-                                    if (cluster.getName().equals("lhr1-emerald")) {
-                                        feedClusterToAdd.setType(cluster.getType());
-                                        feedClusterToAdd.setValidity(feedValidity);
-                                        feedClusterToAdd.setRetention(cluster.getRetention());
-                                        if (cluster.getPartition() != null && cluster.getPartition().equals("lhr1")) {
-                                            feedClusterToAdd.setPartition(newColoName);
-                                        }
-                                        feedClusterToAdd.setLifecycle(cluster.getLifecycle());
-                                        feedClusterToAdd.setDelay(cluster.getDelay());
-                                        feedClusterToAdd.setSla(cluster.getSla());
-                                        feedClusterToAdd.setName(newClusterName);
-                                        feedClusterToAdd.setPartition(cluster.getPartition());
-
-                                        if (cluster.getLocations() != null && cluster.getLocations().getLocations() != null) {
-                                            String oldLocation = cluster.getLocations().getLocations().get(0).getPath();
-                                            Locations feedLocations = new Locations();
-                                            Location newLocation = new Location();
-                                            String newLocationPath = oldLocation.replace("lhr1", newColoName)
-                                                    .replace("Lhr1", "Ams1")
-                                                    .replace("LHR1", "AMS1");
-                                            newLocation.setPath(newLocationPath);
-                                            newLocation.setType(cluster.getLocations().getLocations().get(0).getType());
-                                            feedLocations.getLocations().add(newLocation);
-                                            feedClusterToAdd.setLocations(feedLocations);
-                                        }
-                                    }
-                                }
 
 
-
-                                feed.getClusters().getClusters().add(feedClusterToAdd);
-
+//                                feed.getClusters().getClusters().add(feedClusterToAdd);
+//
                                 List<String> feedClusterNames = new ArrayList<>();
                                 for (org.apache.falcon.entity.v0.feed.Cluster cluster : feed_clusters) {
                                     feedClusterNames.add(cluster.getName());
                                 }
-
                                 if(feedClusterNames.size() != 0) {
                                     feedClusterNames.add("prism");
                                 } else {
@@ -184,7 +186,7 @@ public class ColoMigration {
                                 }
                                 for (String colo : feedClusterNames) {
                                     File entityFile = new File(new Path(newPath + File.separator + colo + File.separator
-                                            + file.getName()).toUri().toURL().getPath());
+                                        + file.getName()).toUri().toURL().getPath());
                                     entityFile.getParentFile().mkdirs();
                                     System.out.println("File path : " + entityFile.getAbsolutePath());
                                     if (!entityFile.createNewFile()) {
@@ -195,14 +197,14 @@ public class ColoMigration {
                                     type.getMarshaller().marshal(feed, out);
                                     out.close();
                                 }
-                            }
-                    }
-
-                } catch (FileNotFoundException | FalconException | JAXBException e) {
+                        }
+                } catch (FileNotFoundException | FalconException e) {
                     System.out.println(e.toString());
-                } catch (IOException | ParseException e) {
+                } catch (IOException e) {
                     e.printStackTrace();
                     System.out.println(e.toString());
+                } catch (JAXBException e) {
+                    e.printStackTrace();
                 }
             }
         }
